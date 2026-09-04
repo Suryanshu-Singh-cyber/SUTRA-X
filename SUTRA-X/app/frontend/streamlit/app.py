@@ -22,7 +22,6 @@ try:
     NETWORKX_AVAILABLE = True
 except ImportError:
     NETWORKX_AVAILABLE = False
-    st.warning("⚠️ NetworkX not found. Using simplified network visualization.")
 
 try:
     import plotly.graph_objects as go
@@ -30,7 +29,6 @@ try:
     PLOTLY_AVAILABLE = True
 except ImportError:
     PLOTLY_AVAILABLE = False
-    st.warning("⚠️ Plotly not found. Using fallback visualizations.")
 
 # ============================================================================
 # SIMPLE GRAPH CLASS (Fallback if networkx not available)
@@ -40,41 +38,53 @@ class SimpleGraph:
     """Simple graph implementation as fallback"""
     
     def __init__(self):
-        self.nodes = {}
-        self.edges = {}
-        self.adj = {}
+        self._nodes = {}
+        self._adj = {}
+        self._edges = {}
     
     def add_node(self, node, **attrs):
-        self.nodes[node] = attrs
-        if node not in self.adj:
-            self.adj[node] = {}
+        self._nodes[node] = attrs
+        if node not in self._adj:
+            self._adj[node] = {}
     
     def add_edge(self, u, v, **attrs):
-        if u not in self.adj:
-            self.adj[u] = {}
-        if v not in self.adj:
-            self.adj[v] = {}
-        self.adj[u][v] = attrs
-        self.adj[v][u] = attrs
-        self.edges[(u, v)] = attrs
+        if u not in self._adj:
+            self._adj[u] = {}
+        if v not in self._adj:
+            self._adj[v] = {}
+        self._adj[u][v] = attrs
+        self._adj[v][u] = attrs
+        self._edges[(u, v)] = attrs
     
     def neighbors(self, node):
-        return list(self.adj.get(node, {}).keys())
+        return list(self._adj.get(node, {}).keys())
     
     def degree(self, node):
-        return len(self.adj.get(node, {}))
+        return len(self._adj.get(node, {}))
     
-    def nodes_data(self):
-        return [(n, self.nodes[n]) for n in self.nodes]
+    @property
+    def nodes(self):
+        return self._nodes
     
-    def edges_data(self):
-        return [(u, v, self.edges[(u, v)]) for u, v in self.edges]
+    @property
+    def edges(self):
+        return self._edges
     
     def number_of_nodes(self):
-        return len(self.nodes)
+        return len(self._nodes)
     
     def number_of_edges(self):
-        return len(self.edges)
+        return len(self._edges)
+    
+    def has_edge(self, u, v):
+        return (u, v) in self._edges or (v, u) in self._edges
+    
+    def get_edge_data(self, u, v):
+        if (u, v) in self._edges:
+            return self._edges[(u, v)]
+        if (v, u) in self._edges:
+            return self._edges[(v, u)]
+        return {}
 
 # ============================================================================
 # PAGE CONFIGURATION
@@ -129,13 +139,6 @@ st.markdown("""
         background: #48dbfb;
         color: #333;
     }
-    .entity-card {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-radius: 8px;
-        margin: 0.5rem 0;
-        border-left: 4px solid #667eea;
-    }
     .stButton > button {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -148,22 +151,6 @@ st.markdown("""
     .stButton > button:hover {
         transform: translateY(-2px);
         box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
-    }
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 2px;
-    }
-    .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        white-space: pre-wrap;
-        background-color: #f0f2f6;
-        border-radius: 4px 4px 0px 0px;
-        gap: 1px;
-        padding-top: 10px;
-        padding-bottom: 10px;
-    }
-    .stTabs [aria-selected="true"] {
-        background-color: #667eea;
-        color: white;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -182,6 +169,8 @@ if 'current_page' not in st.session_state:
     st.session_state.current_page = "Dashboard"
 if 'sample_data_generated' not in st.session_state:
     st.session_state.sample_data_generated = False
+if 'entity_list' not in st.session_state:
+    st.session_state.entity_list = []
 
 # ============================================================================
 # DATA GENERATION FUNCTIONS
@@ -195,16 +184,6 @@ def generate_sample_network():
         G = nx.Graph()
     else:
         G = SimpleGraph()
-    
-    # Define entity types and their colors
-    entity_types = {
-        'PERSON': {'color': '#FF6B6B', 'size': 30},
-        'PHONE': {'color': '#4ECDC4', 'size': 20},
-        'ACCOUNT': {'color': '#45B7D1', 'size': 25},
-        'VEHICLE': {'color': '#96CEB4', 'size': 22},
-        'LOCATION': {'color': '#FFEAA7', 'size': 28},
-        'CASE': {'color': '#FF9FF3', 'size': 35}
-    }
     
     # Indian names
     first_names = ['Raj', 'Amit', 'Priya', 'Suresh', 'Anita', 'Vikram', 'Neha', 'Rahul', 
@@ -233,7 +212,6 @@ def generate_sample_network():
         number = f"98{random.randint(10000000, 99999999)}"
         G.add_node(phone_id, type='PHONE', number=number)
         phones.append(phone_id)
-        # Connect to random person
         owner = random.choice(persons)
         G.add_edge(owner, phone_id, type='OWNS', confidence=0.8)
     
@@ -280,7 +258,6 @@ def generate_sample_network():
                    title=case_titles[i] if i < len(case_titles) else f"Case {i+1}",
                    status=random.choice(['Active', 'Pending', 'Under Review']))
         cases.append(case_id)
-        # Connect case to some persons
         for _ in range(random.randint(2, 5)):
             person = random.choice(persons)
             G.add_edge(case_id, person, type='INVOLVED', confidence=0.6 + random.random()*0.3)
@@ -311,31 +288,58 @@ def generate_sample_network():
         G.add_edge(person, location, type='VISITED',
                   timestamp=(datetime.now() - timedelta(days=random.randint(1, 90))).isoformat())
     
-    # Create some cross-case connections (bridges)
+    # Create some cross-case connections
     for _ in range(8):
         person = random.choice(persons)
         case = random.choice(cases)
-        # Check if edge exists (depends on graph type)
         try:
             if not G.has_edge(person, case):
                 G.add_edge(person, case, type='INVOLVED', confidence=0.5 + random.random()*0.4)
         except:
             G.add_edge(person, case, type='INVOLVED', confidence=0.5 + random.random()*0.4)
     
-    # Add some hidden connections
-    hidden_connections = [
-        ('P-0001', 'P-0012'),
-        ('PH-0005', 'PH-0015'),
-        ('ACC-0003', 'ACC-0010'),
-    ]
-    for src, tgt in hidden_connections:
-        try:
-            if src in G.nodes and tgt in G.nodes and not G.has_edge(src, tgt):
-                G.add_edge(src, tgt, type='HIDDEN_CONNECTION', confidence=0.6, hidden=True)
-        except:
-            G.add_edge(src, tgt, type='HIDDEN_CONNECTION', confidence=0.6, hidden=True)
-    
     return G
+
+def get_node_list(G):
+    """Safely get list of nodes from graph"""
+    try:
+        if NETWORKX_AVAILABLE:
+            return list(G.nodes())
+        else:
+            return list(G.nodes)
+    except:
+        return []
+
+def get_node_attributes(G, node):
+    """Safely get node attributes"""
+    try:
+        if NETWORKX_AVAILABLE:
+            return dict(G.nodes[node])
+        else:
+            return G.nodes[node]
+    except:
+        return {}
+
+def get_neighbors(G, node):
+    """Safely get neighbors of a node"""
+    try:
+        return list(G.neighbors(node))
+    except:
+        return []
+
+def get_degree(G, node):
+    """Safely get degree of a node"""
+    try:
+        return G.degree(node)
+    except:
+        return len(get_neighbors(G, node))
+
+def get_edge_data(G, u, v):
+    """Safely get edge data"""
+    try:
+        return G.get_edge_data(u, v)
+    except:
+        return {}
 
 # ============================================================================
 # ANALYZER FUNCTIONS
@@ -347,46 +351,40 @@ def analyze_network(G):
     if G is None:
         return None
     
-    # Get node count
-    try:
-        total_nodes = G.number_of_nodes()
-    except:
-        total_nodes = len(G.nodes)
+    node_list = get_node_list(G)
     
+    # Get counts
+    total_nodes = len(node_list)
+    total_edges = 0
     try:
-        total_edges = G.number_of_edges()
+        if NETWORKX_AVAILABLE:
+            total_edges = G.number_of_edges()
+        else:
+            total_edges = len(G.edges)
     except:
-        total_edges = len(G.edges)
+        total_edges = 0
     
     # Count node types
     node_types = {}
-    try:
-        for node, data in G.nodes(data=True):
-            node_type = data.get('type', 'UNKNOWN')
-            node_types[node_type] = node_types.get(node_type, 0) + 1
-    except:
-        for node in G.nodes:
-            node_type = G.nodes[node].get('type', 'UNKNOWN')
-            node_types[node_type] = node_types.get(node_type, 0) + 1
+    for node in node_list:
+        attrs = get_node_attributes(G, node)
+        node_type = attrs.get('type', 'UNKNOWN')
+        node_types[node_type] = node_types.get(node_type, 0) + 1
     
-    # Find high-degree entities (priority leads)
+    # Find high-degree entities
     priority_entities = []
-    for node in G.nodes:
-        try:
-            degree = G.degree(node)
-        except:
-            degree = len(G.neighbors(node))
-        
-        node_type = G.nodes[node].get('type', 'UNKNOWN')
+    for node in node_list:
+        degree = get_degree(G, node)
+        attrs = get_node_attributes(G, node)
+        node_type = attrs.get('type', 'UNKNOWN')
         if node_type != 'CASE' and degree >= 2:
             priority_entities.append({
                 'id': node,
                 'degree': degree,
                 'type': node_type,
-                'name': G.nodes[node].get('name', G.nodes[node].get('number', node))
+                'name': attrs.get('name', attrs.get('number', node))
             })
     
-    # Sort by degree
     priority_entities.sort(key=lambda x: x['degree'], reverse=True)
     
     metrics = {
@@ -401,23 +399,26 @@ def analyze_network(G):
 def get_entity_details(G, entity_id):
     """Get detailed information about an entity"""
     
-    if entity_id not in G.nodes:
+    node_list = get_node_list(G)
+    if entity_id not in node_list:
         return None
+    
+    attrs = get_node_attributes(G, entity_id)
+    neighbors = get_neighbors(G, entity_id)
     
     details = {
         'id': entity_id,
-        'properties': dict(G.nodes[entity_id]),
+        'properties': attrs,
         'connections': [],
         'priority': 'MEDIUM',
         'priority_score': random.uniform(0.3, 0.9)
     }
     
     # Get connections
-    for neighbor in G.neighbors(entity_id):
-        try:
-            edge_data = G.get_edge_data(entity_id, neighbor)
-        except:
-            edge_data = {}
+    for neighbor in neighbors:
+        edge_data = get_edge_data(G, entity_id, neighbor)
+        if not edge_data:
+            edge_data = get_edge_data(G, neighbor, entity_id)
         
         details['connections'].append({
             'entity_id': neighbor,
@@ -465,6 +466,7 @@ with st.sidebar:
             st.session_state.graph = G
             st.session_state.data_loaded = True
             st.session_state.sample_data_generated = True
+            st.session_state.entity_list = get_node_list(G)
             st.success(f"✅ Generated network with data")
             st.rerun()
     
@@ -525,6 +527,7 @@ if not st.session_state.data_loaded or st.session_state.graph is None:
 
 else:
     G = st.session_state.graph
+    node_list = get_node_list(G)
     metrics = analyze_network(G)
     
     # ========================================================================
@@ -544,11 +547,12 @@ else:
             high_priority = len([e for e in (metrics['priority_entities'] if metrics else []) if e['degree'] >= 4])
             st.metric("High Priority Leads", high_priority, delta="🚨 Immediate")
         with col4:
-            # Count persons with multiple case connections
             cross_case = 0
-            for node in G.nodes:
-                if G.nodes[node].get('type') == 'PERSON':
-                    case_connections = sum(1 for n in G.neighbors(node) if G.nodes[n].get('type') == 'CASE')
+            for node in node_list:
+                attrs = get_node_attributes(G, node)
+                if attrs.get('type') == 'PERSON':
+                    neighbors = get_neighbors(G, node)
+                    case_connections = sum(1 for n in neighbors if get_node_attributes(G, n).get('type') == 'CASE')
                     if case_connections >= 2:
                         cross_case += 1
             st.metric("Cross-Case Links", cross_case, delta="🔗 Connections")
@@ -599,10 +603,10 @@ else:
         with col2:
             st.subheader("🔗 Recent Activity")
             activities = [
-                "New connection discovered between P-0001 and P-0012",
-                "Case CASE-001 linked to 2 new persons",
-                "Financial pattern detected in ACC-0003",
-                "Location visit recorded at L-0002"
+                "New connection discovered in the network",
+                "Cross-case link identified",
+                "Priority lead updated",
+                "Network analysis complete"
             ]
             for activity in activities:
                 st.markdown(f"• {activity}")
@@ -613,16 +617,15 @@ else:
     elif selected_page == "Network Graph":
         st.markdown('<h1 class="main-title">🌐 Network Graph</h1>', unsafe_allow_html=True)
         
-        if PLOTLY_AVAILABLE and NETWORKX_AVAILABLE:
-            # Interactive graph with plotly
-            st.info("🌐 Interactive network visualization. Click nodes for details.")
+        if PLOTLY_AVAILABLE and NETWORKX_AVAILABLE and len(node_list) > 1:
+            st.info("🌐 Interactive network visualization.")
             
             try:
                 # Use spring layout
                 pos = nx.spring_layout(G, k=0.5, iterations=50)
                 
                 # Edge traces
-                edge_x, edge_y, edge_text = [], [], []
+                edge_x, edge_y = [], []
                 for edge in G.edges():
                     try:
                         x0, y0 = pos[edge[0]]
@@ -653,15 +656,17 @@ else:
                     'UNKNOWN': '#888888'
                 }
                 
-                for node in G.nodes():
+                for node in node_list:
                     try:
                         x, y = pos[node]
                         node_x.append(x)
                         node_y.append(y)
-                        node_type = G.nodes[node].get('type', 'UNKNOWN')
-                        node_text.append(f"{node}<br>Type: {node_type}<br>Degree: {G.degree(node)}")
+                        attrs = get_node_attributes(G, node)
+                        node_type = attrs.get('type', 'UNKNOWN')
+                        degree = get_degree(G, node)
+                        node_text.append(f"{node}<br>Type: {node_type}<br>Degree: {degree}")
                         node_color.append(color_map.get(node_type, '#888888'))
-                        node_size.append(10 + G.degree(node) * 2)
+                        node_size.append(10 + degree * 2)
                     except:
                         continue
                 
@@ -693,19 +698,22 @@ else:
                 st.plotly_chart(fig, use_container_width=True)
             except Exception as e:
                 st.error(f"Error rendering graph: {str(e)}")
-                st.info("Showing fallback view...")
-                _show_fallback_network(G)
+                _show_fallback_network(G, node_list)
         else:
-            st.warning("Plotly or NetworkX not available. Showing data view.")
-            _show_fallback_network(G)
+            st.warning("Showing network data view.")
+            _show_fallback_network(G, node_list)
         
-        # Entity selector
+        # Entity selector - FIXED: Using node_list directly
         st.markdown("---")
         col1, col2 = st.columns([2, 1])
         with col1:
-            selected = st.selectbox("🔍 Select Entity to Investigate", list(G.nodes()))
+            if node_list:
+                selected = st.selectbox("🔍 Select Entity to Investigate", node_list)
+            else:
+                selected = None
+                st.warning("No entities in network")
         with col2:
-            if st.button("View Profile", use_container_width=True):
+            if selected and st.button("View Profile", use_container_width=True):
                 st.session_state.selected_entity = selected
                 st.session_state.current_page = "Entity Profile"
                 st.rerun()
@@ -716,77 +724,76 @@ else:
     elif selected_page == "Entity Profile":
         st.markdown('<h1 class="main-title">👤 Entity Intelligence</h1>', unsafe_allow_html=True)
         
-        if st.session_state.selected_entity and st.session_state.selected_entity in G.nodes:
-            entity_id = st.session_state.selected_entity
+        # FIXED: Using node_list directly
+        if not node_list:
+            st.warning("No entities in the network. Please generate data first.")
         else:
-            entity_id = st.selectbox("Search Entity", list(G.nodes()))
-            st.session_state.selected_entity = entity_id
-        
-        if entity_id and entity_id in G.nodes:
-            details = get_entity_details(G, entity_id)
-            
-            if details:
-                col1, col2 = st.columns([2, 1])
-                
-                with col1:
-                    st.subheader(f"📋 Entity: {entity_id}")
-                    entity_type = G.nodes[entity_id].get('type', 'UNKNOWN')
-                    st.markdown(f"**Type:** {entity_type}")
-                    
-                    # Priority badge
-                    if details.get('priority') == 'HIGH':
-                        st.markdown(f'<span class="status-badge status-high">🔴 {details["priority"]} PRIORITY</span>', unsafe_allow_html=True)
-                    elif details.get('priority') == 'MEDIUM':
-                        st.markdown(f'<span class="status-badge status-medium">🟡 {details["priority"]} PRIORITY</span>', unsafe_allow_html=True)
-                    else:
-                        st.markdown(f'<span class="status-badge status-low">🟢 {details["priority"]} PRIORITY</span>', unsafe_allow_html=True)
-                    
-                    st.markdown(f"**Priority Score:** {details['priority_score']:.1%}")
-                    
-                    st.markdown("---")
-                    
-                    st.subheader("📊 Properties")
-                    for key, value in G.nodes[entity_id].items():
-                        st.markdown(f"**{key}:** {value}")
-                    
-                    st.markdown("---")
-                    
-                    st.subheader(f"🔗 Connections ({len(details['connections'])})")
-                    for conn in details['connections'][:10]:
-                        st.markdown(f"**→ {conn['entity_id']}**")
-                        st.caption(f"Relation: {conn['relation']}")
-                        st.markdown("---")
-                
-                with col2:
-                    st.subheader("📊 Quick Stats")
-                    st.metric("Direct Connections", len(details['connections']))
-                    try:
-                        st.metric("Network Degree", G.degree(entity_id))
-                    except:
-                        st.metric("Network Degree", len(G.neighbors(entity_id)))
-                    
-                    st.markdown("---")
-                    
-                    st.subheader("🎯 Recommendations")
-                    degree = len(details['connections'])
-                    if degree >= 5:
-                        st.warning("🔴 Immediate investigation required")
-                        st.markdown("- Assign to senior investigator")
-                        st.markdown("- Conduct surveillance")
-                        st.markdown("- Coordinate with other cases")
-                    elif degree >= 3:
-                        st.info("🟡 Schedule within 48 hours")
-                        st.markdown("- Gather additional evidence")
-                        st.markdown("- Interview connected persons")
-                    else:
-                        st.success("🟢 Low priority")
-                        st.markdown("- Monitor for new connections")
-                        st.markdown("- Document findings")
-            
+            if st.session_state.selected_entity and st.session_state.selected_entity in node_list:
+                entity_id = st.session_state.selected_entity
             else:
-                st.warning(f"Could not find details for entity {entity_id}")
-        else:
-            st.warning("Please select an entity to investigate")
+                entity_id = st.selectbox("Search Entity", node_list)
+                st.session_state.selected_entity = entity_id
+            
+            if entity_id and entity_id in node_list:
+                details = get_entity_details(G, entity_id)
+                
+                if details:
+                    col1, col2 = st.columns([2, 1])
+                    
+                    with col1:
+                        st.subheader(f"📋 Entity: {entity_id}")
+                        attrs = get_node_attributes(G, entity_id)
+                        entity_type = attrs.get('type', 'UNKNOWN')
+                        st.markdown(f"**Type:** {entity_type}")
+                        
+                        # Priority badge
+                        if details.get('priority') == 'HIGH':
+                            st.markdown(f'<span class="status-badge status-high">🔴 {details["priority"]} PRIORITY</span>', unsafe_allow_html=True)
+                        elif details.get('priority') == 'MEDIUM':
+                            st.markdown(f'<span class="status-badge status-medium">🟡 {details["priority"]} PRIORITY</span>', unsafe_allow_html=True)
+                        else:
+                            st.markdown(f'<span class="status-badge status-low">🟢 {details["priority"]} PRIORITY</span>', unsafe_allow_html=True)
+                        
+                        st.markdown(f"**Priority Score:** {details['priority_score']:.1%}")
+                        
+                        st.markdown("---")
+                        
+                        st.subheader("📊 Properties")
+                        for key, value in attrs.items():
+                            st.markdown(f"**{key}:** {value}")
+                        
+                        st.markdown("---")
+                        
+                        st.subheader(f"🔗 Connections ({len(details['connections'])})")
+                        for conn in details['connections'][:10]:
+                            st.markdown(f"**→ {conn['entity_id']}**")
+                            st.caption(f"Relation: {conn['relation']}")
+                            st.markdown("---")
+                    
+                    with col2:
+                        st.subheader("📊 Quick Stats")
+                        st.metric("Direct Connections", len(details['connections']))
+                        st.metric("Network Degree", get_degree(G, entity_id))
+                        
+                        st.markdown("---")
+                        
+                        st.subheader("🎯 Recommendations")
+                        degree = len(details['connections'])
+                        if degree >= 5:
+                            st.warning("🔴 Immediate investigation required")
+                            st.markdown("- Assign to senior investigator")
+                            st.markdown("- Conduct surveillance")
+                            st.markdown("- Coordinate with other cases")
+                        elif degree >= 3:
+                            st.info("🟡 Schedule within 48 hours")
+                            st.markdown("- Gather additional evidence")
+                            st.markdown("- Interview connected persons")
+                        else:
+                            st.success("🟢 Low priority")
+                            st.markdown("- Monitor for new connections")
+                            st.markdown("- Document findings")
+                else:
+                    st.warning(f"Could not find details for entity {entity_id}")
 
     # ========================================================================
     # TIMELINE
@@ -842,9 +849,9 @@ else:
         st.subheader("📌 Key Events")
         events = [
             {"date": dates[4], "event": "First cross-case connection discovered"},
-            {"date": dates[8], "event": "Network expansion detected - 3 new entities"},
-            {"date": dates[12], "event": "Priority lead identified in Case #27"},
-            {"date": dates[16], "event": "Evidence breakthrough - financial pattern found"}
+            {"date": dates[8], "event": "Network expansion detected"},
+            {"date": dates[12], "event": "Priority lead identified"},
+            {"date": dates[16], "event": "Evidence breakthrough found"}
         ]
         
         for event in events:
@@ -863,16 +870,15 @@ else:
         st.info("🔍 Discovering connections between cases...")
         
         # Find cross-case connections
-        case_nodes = [n for n in G.nodes() if G.nodes[n].get('type') == 'CASE']
-        person_nodes = [n for n in G.nodes() if G.nodes[n].get('type') == 'PERSON']
+        case_nodes = [n for n in node_list if get_node_attributes(G, n).get('type') == 'CASE']
+        person_nodes = [n for n in node_list if get_node_attributes(G, n).get('type') == 'PERSON']
         
-        if len(case_nodes) >= 2:
+        if len(case_nodes) >= 2 and len(person_nodes) >= 1:
             cross_connections = []
             for i, case1 in enumerate(case_nodes):
                 for case2 in case_nodes[i+1:]:
-                    # Find shared persons
-                    persons1 = [n for n in G.neighbors(case1) if n in person_nodes]
-                    persons2 = [n for n in G.neighbors(case2) if n in person_nodes]
+                    persons1 = [n for n in get_neighbors(G, case1) if n in person_nodes]
+                    persons2 = [n for n in get_neighbors(G, case2) if n in person_nodes]
                     shared = set(persons1) & set(persons2)
                     
                     if shared:
@@ -898,20 +904,15 @@ else:
                         if conn['shared_persons']:
                             st.write("**Shared Persons:**")
                             for person in conn['shared_persons']:
-                                name = G.nodes[person].get('name', person)
+                                attrs = get_node_attributes(G, person)
+                                name = attrs.get('name', person)
                                 st.markdown(f"- {person} ({name})")
                         
                         st.progress(conn['confidence'])
             else:
                 st.info("No cross-case connections found in the current network.")
         else:
-            st.warning("Need at least 2 cases to find cross-case connections.")
-        
-        # Network visualization of cross-case connections
-        if PLOTLY_AVAILABLE and len(case_nodes) >= 2:
-            st.markdown("---")
-            st.subheader("📊 Cross-Case Network Map")
-            st.info("Interactive visualization of case-person connections")
+            st.warning("Need at least 2 cases and 1 person to find cross-case connections.")
 
     # ========================================================================
     # AI ASSISTANT
@@ -961,9 +962,9 @@ else:
                 I've analyzed your query about **{query[:50]}...**
                 
                 ### Key Findings
-                1. **Network Overview**: The network contains {len(G.nodes())} entities and {len(G.edges())} relationships
-                2. **Key Connections**: Multiple relationships discovered across different entity types
-                3. **Priority Entities**: {len([n for n in G.nodes() if len(G.neighbors(n)) >= 3])} entities have high connectivity
+                1. **Network Overview**: The network contains {len(node_list)} entities
+                2. **Key Connections**: Multiple relationships discovered
+                3. **Priority Entities**: {len([n for n in node_list if get_degree(G, n) >= 3])} entities have high connectivity
                 
                 ### Actionable Insights
                 - 🎯 **Focus Areas**: Investigate entities with high connectivity first
@@ -981,14 +982,16 @@ else:
                 # Show relevant entities
                 st.subheader("📋 Relevant Entities")
                 entities_with_degree = []
-                for node in G.nodes():
-                    if G.nodes[node].get('type') == 'PERSON':
-                        degree = len(G.neighbors(node))
+                for node in node_list:
+                    attrs = get_node_attributes(G, node)
+                    if attrs.get('type') == 'PERSON':
+                        degree = get_degree(G, node)
                         entities_with_degree.append((node, degree))
                 
                 entities_with_degree.sort(key=lambda x: x[1], reverse=True)
                 for node, degree in entities_with_degree[:5]:
-                    name = G.nodes[node].get('name', node)
+                    attrs = get_node_attributes(G, node)
+                    name = attrs.get('name', node)
                     st.markdown(f"- **{node}** ({name}) - Degree: {degree}")
                 
                 st.warning("⚠️ This is an AI-generated analysis. All findings should be verified by human investigators.")
@@ -999,38 +1002,35 @@ else:
 # HELPER FUNCTIONS
 # ============================================================================
 
-def _show_fallback_network(G):
+def _show_fallback_network(G, node_list):
     """Show network data in table format when plotly is not available"""
     st.subheader("📋 Network Data")
     
     # Show nodes
     st.write("**Entities:**")
     node_data = []
-    for node in G.nodes():
+    for node in node_list:
+        attrs = get_node_attributes(G, node)
         node_data.append({
             'ID': node,
-            'Type': G.nodes[node].get('type', 'UNKNOWN'),
-            'Degree': len(G.neighbors(node))
+            'Type': attrs.get('type', 'UNKNOWN'),
+            'Degree': get_degree(G, node)
         })
     st.dataframe(pd.DataFrame(node_data), use_container_width=True)
     
     # Show edges
     st.write("**Relationships:**")
     edge_data = []
-    for u, v in G.edges:
-        try:
-            edge_data.append({
-                'Source': u,
-                'Target': v,
-                'Type': G.get_edge_data(u, v).get('type', 'CONNECTED')
-            })
-        except:
-            edge_data.append({
-                'Source': u,
-                'Target': v,
-                'Type': 'CONNECTED'
-            })
-    st.dataframe(pd.DataFrame(edge_data), use_container_width=True)
+    for u in node_list:
+        for v in get_neighbors(G, u):
+            if (u, v) not in [(e['Source'], e['Target']) for e in edge_data]:
+                edge_data.append({
+                    'Source': u,
+                    'Target': v,
+                    'Type': get_edge_data(G, u, v).get('type', 'CONNECTED')
+                })
+    if edge_data:
+        st.dataframe(pd.DataFrame(edge_data), use_container_width=True)
 
 # ============================================================================
 # FOOTER
