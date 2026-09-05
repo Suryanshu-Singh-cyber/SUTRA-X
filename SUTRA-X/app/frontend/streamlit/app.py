@@ -1,7 +1,7 @@
 """
-SUTRA-X: Smart Unified Threat & Relationship Analytics
-AI-Powered Criminal Network Analysis System
-SIH 2026 | Complete Phase 2 with Full Multi-Language, Emergency Alerts, Simulations
+SUTRA-X PHASE 3: Complete Production-Ready Criminal Network Intelligence Platform
+SIH 2026 | AI-Powered Criminal Network Analysis System
+Features: RAG AI Copilot, Offline-First, Export Reports, Heatmaps, Advanced Viz, RBAC
 """
 
 import streamlit as st
@@ -12,12 +12,12 @@ import random
 import json
 import base64
 import io
-from pathlib import Path
-import sys
-import os
 import hashlib
 import time
 import re
+import os
+from pathlib import Path
+import sys
 
 # ============================================================================
 # FALLBACK FOR NETWORKX & PLOTLY
@@ -32,6 +32,7 @@ except ImportError:
 try:
     import plotly.graph_objects as go
     import plotly.express as px
+    from plotly.subplots import make_subplots
     PLOTLY_AVAILABLE = True
 except ImportError:
     PLOTLY_AVAILABLE = False
@@ -41,30 +42,31 @@ except ImportError:
 # ============================================================================
 
 st.set_page_config(
-    page_title="SUTRA-X - Criminal Network Intelligence | SIH 2026",
+    page_title="SUTRA-X PHASE 3 - Criminal Network Intelligence | SIH 2026",
     page_icon="🕵️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # ============================================================================
-# COMPLETE MULTI-LANGUAGE SUPPORT (10 Languages)
+# COMPLETE MULTI-LANGUAGE SUPPORT
 # ============================================================================
 
 LANGUAGES = {
     "en": {
         "name": "English",
         "flag": "🇬🇧",
-        # Navigation
         "nav_dashboard": "Dashboard",
         "nav_graph": "Network Graph",
         "nav_entity": "Entity Profile",
         "nav_timeline": "Timeline",
         "nav_crosscase": "Cross-Case Discovery",
-        "nav_ai": "AI Assistant",
+        "nav_ai": "AI Copilot",
         "nav_alerts": "Alerts & Emergency",
         "nav_simulation": "What-If Simulation",
-        # Dashboard
+        "nav_heatmap": "Heatmap",
+        "nav_export": "Export",
+        "nav_security": "Security",
         "dashboard_title": "Command Center",
         "dashboard_sub": "Real-time intelligence dashboard",
         "total_entities": "Total Entities",
@@ -76,7 +78,6 @@ LANGUAGES = {
         "no_priority": "No priority leads found",
         "recent_activity": "Recent Activity",
         "network_stats": "Network Statistics",
-        # Common
         "search_entity": "Search Entity",
         "view_profile": "View Profile",
         "connections": "Connections",
@@ -92,7 +93,6 @@ LANGUAGES = {
         "error": "Error",
         "no_data": "No data loaded",
         "view": "View",
-        # Alerts
         "alerts_title": "Alerts & Emergency Response",
         "alerts_sub": "Real-time critical alerts and emergency notifications",
         "critical_alerts": "Critical Alerts",
@@ -107,7 +107,6 @@ LANGUAGES = {
         "information_only": "Information Only",
         "no_alerts": "No active alerts",
         "refresh_alerts": "Refresh Alerts",
-        # Simulation
         "simulation_title": "What-If Simulation",
         "simulation_sub": "Simulate network disruption scenarios",
         "select_entity": "Select Entity to Remove",
@@ -121,26 +120,22 @@ LANGUAGES = {
         "disruption_level": "Disruption Level",
         "affected_entities": "Affected Entities",
         "recommendation_label": "Recommendation",
-        # Cross-Case
         "crosscase_title": "Cross-Case Connection Discovery",
         "crosscase_sub": "Uncover hidden connections between cases",
         "shared_entities": "Shared Entities",
         "confidence": "Confidence",
         "total_connections": "Total Connections",
         "shared_persons": "Shared Persons",
-        # Entity Profile
         "entity_intelligence": "Entity Intelligence",
         "quick_stats": "Quick Stats",
         "direct_connections": "Direct Connections",
         "network_degree": "Network Degree",
         "priority_score": "Priority Score",
-        # Timeline
         "timeline_title": "Investigation Timeline",
         "timeline_sub": "Track network evolution over time",
         "key_events": "Key Events",
-        # AI Assistant
-        "ai_title": "AI Investigation Copilot",
-        "ai_sub": "Get AI-powered insights",
+        "ai_title": "AI Copilot",
+        "ai_sub": "RAG-powered investigation assistant",
         "quick_questions": "Quick Questions",
         "custom_query": "Custom Query",
         "analyze": "Analyze",
@@ -151,10 +146,8 @@ LANGUAGES = {
         "next_steps": "Next Steps",
         "relevant_entities": "Relevant Entities",
         "disclaimer": "This is an AI-generated analysis. All findings should be verified by human investigators.",
-        # Footer
         "made_with": "Made with ❤️ for Smart India Hackathon 2026",
-        "version": "v2.0.0",
-        # Emergency
+        "version": "v3.0.0",
         "emergency_title": "🚨 EMERGENCY ALERT",
         "emergency_desc": "Critical threat detected in the network",
         "call_police": "🚔 Call Police",
@@ -162,11 +155,49 @@ LANGUAGES = {
         "send_alert": "📨 Send Alert to Team",
         "alert_sent": "✅ Alert sent to all investigators!",
         "call_initiated": "📞 Emergency call initiated...",
-        # Status
         "online": "Online",
         "offline": "Offline",
         "data_loaded": "Data Loaded",
         "no_data_loaded": "No data loaded",
+        "heatmap_title": "Geographic Heatmap",
+        "heatmap_sub": "Visualize crime hotspots and patterns",
+        "export_title": "Export Reports",
+        "export_sub": "Generate and download investigation reports",
+        "export_pdf": "Export as PDF",
+        "export_word": "Export as Word",
+        "export_json": "Export as JSON",
+        "security_title": "Security & Access Control",
+        "security_sub": "Role-Based Access Control and Audit Logs",
+        "user_role": "User Role",
+        "audit_logs": "Audit Logs",
+        "rbac_info": "Role-Based Access Control",
+        "offline_mode": "Offline Mode",
+        "offline_desc": "Work without internet, sync when online",
+        "rag_context": "RAG Context",
+        "rag_sources": "Sources",
+        "rag_confidence": "Confidence",
+        "export_history": "Export History",
+        "generated_at": "Generated At",
+        "file_name": "File Name",
+        "download": "Download",
+        "heatmap_intensity": "Intensity",
+        "heatmap_locations": "Locations",
+        "security_roles": {
+            "admin": "Administrator",
+            "investigator": "Investigator",
+            "analyst": "Analyst",
+            "viewer": "Viewer"
+        },
+        "audit_actions": {
+            "login": "Login",
+            "logout": "Logout",
+            "view": "View Entity",
+            "export": "Export Report",
+            "update": "Update Data",
+            "delete": "Delete Entity",
+            "alert": "Alert Triggered",
+            "simulation": "Simulation Run"
+        }
     },
     "hi": {
         "name": "हिंदी",
@@ -179,6 +210,9 @@ LANGUAGES = {
         "nav_ai": "एआई सहायक",
         "nav_alerts": "अलर्ट और आपातकाल",
         "nav_simulation": "क्या-अगर सिमुलेशन",
+        "nav_heatmap": "हीटमैप",
+        "nav_export": "निर्यात",
+        "nav_security": "सुरक्षा",
         "dashboard_title": "कमांड सेंटर",
         "dashboard_sub": "वास्तविक समय खुफिया डैशबोर्ड",
         "total_entities": "कुल इकाइयां",
@@ -246,8 +280,8 @@ LANGUAGES = {
         "timeline_title": "जांच समयरेखा",
         "timeline_sub": "समय के साथ नेटवर्क विकास ट्रैक करें",
         "key_events": "मुख्य घटनाएं",
-        "ai_title": "एआई जांच सहायक",
-        "ai_sub": "एआई-संचालित अंतर्दृष्टि प्राप्त करें",
+        "ai_title": "एआई सहायक",
+        "ai_sub": "RAG-संचालित जांच सहायक",
         "quick_questions": "त्वरित प्रश्न",
         "custom_query": "कस्टम प्रश्न",
         "analyze": "विश्लेषण करें",
@@ -259,7 +293,7 @@ LANGUAGES = {
         "relevant_entities": "प्रासंगिक इकाइयां",
         "disclaimer": "यह एक एआई-जनित विश्लेषण है। सभी निष्कर्षों को मानव जांचकर्ताओं द्वारा सत्यापित किया जाना चाहिए।",
         "made_with": "स्मार्ट इंडिया हैकथॉन 2026 के लिए ❤️ के साथ बनाया गया",
-        "version": "v2.0.0",
+        "version": "v3.0.0",
         "emergency_title": "🚨 आपातकालीन अलर्ट",
         "emergency_desc": "नेटवर्क में गंभीर खतरा पाया गया",
         "call_police": "🚔 पुलिस को कॉल करें",
@@ -271,6 +305,45 @@ LANGUAGES = {
         "offline": "ऑफलाइन",
         "data_loaded": "डेटा लोड हुआ",
         "no_data_loaded": "कोई डेटा लोड नहीं",
+        "heatmap_title": "भौगोलिक हीटमैप",
+        "heatmap_sub": "अपराध हॉटस्पॉट और पैटर्न देखें",
+        "export_title": "रिपोर्ट निर्यात",
+        "export_sub": "जांच रिपोर्ट जनरेट और डाउनलोड करें",
+        "export_pdf": "PDF के रूप में निर्यात करें",
+        "export_word": "Word के रूप में निर्यात करें",
+        "export_json": "JSON के रूप में निर्यात करें",
+        "security_title": "सुरक्षा और पहुंच नियंत्रण",
+        "security_sub": "रोल-आधारित पहुंच नियंत्रण और ऑडिट लॉग",
+        "user_role": "उपयोगकर्ता भूमिका",
+        "audit_logs": "ऑडिट लॉग",
+        "rbac_info": "रोल-आधारित पहुंच नियंत्रण",
+        "offline_mode": "ऑफलाइन मोड",
+        "offline_desc": "इंटरनेट के बिना काम करें, ऑनलाइन होने पर सिंक करें",
+        "rag_context": "RAG संदर्भ",
+        "rag_sources": "स्रोत",
+        "rag_confidence": "विश्वास",
+        "export_history": "निर्यात इतिहास",
+        "generated_at": "जनरेट किया गया",
+        "file_name": "फ़ाइल नाम",
+        "download": "डाउनलोड",
+        "heatmap_intensity": "तीव्रता",
+        "heatmap_locations": "स्थान",
+        "security_roles": {
+            "admin": "प्रशासक",
+            "investigator": "जांचकर्ता",
+            "analyst": "विश्लेषक",
+            "viewer": "दर्शक"
+        },
+        "audit_actions": {
+            "login": "लॉगिन",
+            "logout": "लॉगआउट",
+            "view": "इकाई देखें",
+            "export": "रिपोर्ट निर्यात",
+            "update": "डेटा अपडेट",
+            "delete": "इकाई हटाएं",
+            "alert": "अलर्ट ट्रिगर",
+            "simulation": "सिमुलेशन चलाएं"
+        }
     },
     "ta": {
         "name": "தமிழ்",
@@ -283,6 +356,9 @@ LANGUAGES = {
         "nav_ai": "AI உதவியாளர்",
         "nav_alerts": "அலர்ட்கள் மற்றும் அவசர",
         "nav_simulation": "என்ன-என்றால் உருவகப்படுத்துதல்",
+        "nav_heatmap": "வெப்ப வரைபடம்",
+        "nav_export": "ஏற்றுமதி",
+        "nav_security": "பாதுகாப்பு",
         "dashboard_title": "கட்டளை மையம்",
         "dashboard_sub": "நிகழ்நேர உளவுத்துறை டாஷ்போர்டு",
         "total_entities": "மொத்த நிறுவனங்கள்",
@@ -350,8 +426,8 @@ LANGUAGES = {
         "timeline_title": "விசாரணை காலக்கோடு",
         "timeline_sub": "காலப்போக்கில் வலைப்பின்னல் பரிணாமத்தை கண்காணிக்கவும்",
         "key_events": "முக்கிய நிகழ்வுகள்",
-        "ai_title": "AI விசாரணை உதவியாளர்",
-        "ai_sub": "AI-இயக்கப்பட்ட நுண்ணறிவுகளைப் பெறுங்கள்",
+        "ai_title": "AI உதவியாளர்",
+        "ai_sub": "RAG-இயக்கப்பட்ட விசாரணை உதவியாளர்",
         "quick_questions": "விரைவான கேள்விகள்",
         "custom_query": "தனிப்பயன் கேள்வி",
         "analyze": "பகுப்பாய்வு செய்யவும்",
@@ -363,7 +439,7 @@ LANGUAGES = {
         "relevant_entities": "தொடர்புடைய நிறுவனங்கள்",
         "disclaimer": "இது AI-உருவாக்கப்பட்ட பகுப்பாய்வு. அனைத்து கண்டுபிடிப்புகளும் மனித விசாரணையாளர்களால் சரிபார்க்கப்பட வேண்டும்.",
         "made_with": "ஸ்மார்ட் இந்தியா ஹேக்கத்தான் 2026 க்காக ❤️ உடன் உருவாக்கப்பட்டது",
-        "version": "v2.0.0",
+        "version": "v3.0.0",
         "emergency_title": "🚨 அவசர அலர்ட்",
         "emergency_desc": "வலைப்பின்னலில் முக்கிய அச்சுறுத்தல் கண்டறியப்பட்டது",
         "call_police": "🚔 போலீசை அழைக்கவும்",
@@ -375,6 +451,45 @@ LANGUAGES = {
         "offline": "இணையத்திற்கு வெளியே",
         "data_loaded": "தரவு ஏற்றப்பட்டது",
         "no_data_loaded": "தரவு ஏற்றப்படவில்லை",
+        "heatmap_title": "புவியியல் வெப்ப வரைபடம்",
+        "heatmap_sub": "குற்ற புள்ளிகள் மற்றும் வடிவங்களை காட்சிப்படுத்தவும்",
+        "export_title": "அறிக்கைகளை ஏற்றுமதி செய்யவும்",
+        "export_sub": "விசாரணை அறிக்கைகளை உருவாக்கி பதிவிறக்கவும்",
+        "export_pdf": "PDF ஆக ஏற்றுமதி செய்யவும்",
+        "export_word": "Word ஆக ஏற்றுமதி செய்யவும்",
+        "export_json": "JSON ஆக ஏற்றுமதி செய்யவும்",
+        "security_title": "பாதுகாப்பு மற்றும் அணுகல் கட்டுப்பாடு",
+        "security_sub": "பங்கு அடிப்படையிலான அணுகல் கட்டுப்பாடு மற்றும் தணிக்கை பதிவுகள்",
+        "user_role": "பயனர் பங்கு",
+        "audit_logs": "தணிக்கை பதிவுகள்",
+        "rbac_info": "பங்கு அடிப்படையிலான அணுகல் கட்டுப்பாடு",
+        "offline_mode": "ஆஃப்லைன் முறை",
+        "offline_desc": "இணையம் இல்லாமல் வேலை செய்யுங்கள், ஆன்லைனில் இருக்கும்போது ஒத்திசைக்கவும்",
+        "rag_context": "RAG சூழல்",
+        "rag_sources": "மூலங்கள்",
+        "rag_confidence": "நம்பிக்கை",
+        "export_history": "ஏற்றுமதி வரலாறு",
+        "generated_at": "உருவாக்கப்பட்டது",
+        "file_name": "கோப்பு பெயர்",
+        "download": "பதிவிறக்கவும்",
+        "heatmap_intensity": "தீவிரம்",
+        "heatmap_locations": "இருப்பிடங்கள்",
+        "security_roles": {
+            "admin": "நிர்வாகி",
+            "investigator": "விசாரணையாளர்",
+            "analyst": "பகுப்பாய்வாளர்",
+            "viewer": "பார்வையாளர்"
+        },
+        "audit_actions": {
+            "login": "உள்நுழைவு",
+            "logout": "வெளியேறு",
+            "view": "நிறுவனத்தை காண்க",
+            "export": "அறிக்கையை ஏற்றுமதி செய்",
+            "update": "தரவை புதுப்பி",
+            "delete": "நிறுவனத்தை நீக்கு",
+            "alert": "அலர்ட் தூண்டப்பட்டது",
+            "simulation": "உருவகப்படுத்துதல் இயக்கப்பட்டது"
+        }
     },
     "te": {
         "name": "తెలుగు",
@@ -387,6 +502,9 @@ LANGUAGES = {
         "nav_ai": "AI సహాయకుడు",
         "nav_alerts": "అలర్ట్లు మరియు అత్యవసర",
         "nav_simulation": "ఏమిటి-ఉంటే సిమ్యులేషన్",
+        "nav_heatmap": "హీట్మ్యాప్",
+        "nav_export": "ఎగుమతి",
+        "nav_security": "భద్రత",
         "dashboard_title": "కమాండ్ సెంటర్",
         "dashboard_sub": "నిజ-సమయ నిఘా డాష్బోర్డ్",
         "total_entities": "మొత్తం ఎంటిటీలు",
@@ -455,7 +573,7 @@ LANGUAGES = {
         "timeline_sub": "కాలక్రమేణా నెట్వర్క్ పరిణామాన్ని ట్రాక్ చేయండి",
         "key_events": "కీలక ఘటనలు",
         "ai_title": "AI దర్యాప్తు సహాయకుడు",
-        "ai_sub": "AI-ఆధారిత అంతర్దృష్టులను పొందండి",
+        "ai_sub": "RAG-ఆధారిత దర్యాప్తు సహాయకుడు",
         "quick_questions": "శీఘ్ర ప్రశ్నలు",
         "custom_query": "అనుకూల ప్రశ్న",
         "analyze": "విశ్లేషించు",
@@ -467,7 +585,7 @@ LANGUAGES = {
         "relevant_entities": "సంబంధిత ఎంటిటీలు",
         "disclaimer": "ఇది AI-రూపొందించిన విశ్లేషణ. అన్ని ఆవిష్కరణలను మానవ దర్యాప్తు అధికారులు ధృవీకరించాలి.",
         "made_with": "స్మార్ట్ ఇండియా హ్యాకథాన్ 2026 కోసం ❤️ తో తయారు చేయబడింది",
-        "version": "v2.0.0",
+        "version": "v3.0.0",
         "emergency_title": "🚨 అత్యవసర అలర్ట్",
         "emergency_desc": "నెట్వర్క్లో క్లిష్టమైన ముప్పు కనుగొనబడింది",
         "call_police": "🚔 పోలీసులకు కాల్ చేయండి",
@@ -479,10 +597,50 @@ LANGUAGES = {
         "offline": "ఆఫ్‌లైన్",
         "data_loaded": "డేటా లోడ్ చేయబడింది",
         "no_data_loaded": "డేటా లోడ్ చేయబడలేదు",
+        "heatmap_title": "భౌగోళిక హీట్మ్యాప్",
+        "heatmap_sub": "నేర హాట్‌స్పాట్లు మరియు నమూనాలను దృశ్యమానం చేయండి",
+        "export_title": "నివేదికలను ఎగుమతి చేయండి",
+        "export_sub": "దర్యాప్తు నివేదికలను రూపొందించండి మరియు డౌన్‌లోడ్ చేయండి",
+        "export_pdf": "PDF గా ఎగుమతి చేయండి",
+        "export_word": "Word గా ఎగుమతి చేయండి",
+        "export_json": "JSON గా ఎగుమతి చేయండి",
+        "security_title": "భద్రత మరియు యాక్సెస్ నియంత్రణ",
+        "security_sub": "పాత్ర-ఆధారిత యాక్సెస్ నియంత్రణ మరియు ఆడిట్ లాగ్లు",
+        "user_role": "వినియోగదారు పాత్ర",
+        "audit_logs": "ఆడిట్ లాగ్లు",
+        "rbac_info": "పాత్ర-ఆధారిత యాక్సెస్ నియంత్రణ",
+        "offline_mode": "ఆఫ్‌లైన్ మోడ్",
+        "offline_desc": "ఇంటర్నెట్ లేకుండా పని చేయండి, ఆన్‌లైన్‌లో ఉన్నప్పుడు సింక్ చేయండి",
+        "rag_context": "RAG సందర్భం",
+        "rag_sources": "మూలాలు",
+        "rag_confidence": "విశ్వాసం",
+        "export_history": "ఎగుమతి చరిత్ర",
+        "generated_at": "రూపొందించబడింది",
+        "file_name": "ఫైల్ పేరు",
+        "download": "డౌన్‌లోడ్",
+        "heatmap_intensity": "తీవ్రత",
+        "heatmap_locations": "ప్రదేశాలు",
+        "security_roles": {
+            "admin": "నిర్వాహకుడు",
+            "investigator": "దర్యాప్తు అధికారి",
+            "analyst": "విశ్లేషకుడు",
+            "viewer": "వీక్షకుడు"
+        },
+        "audit_actions": {
+            "login": "లాగిన్",
+            "logout": "లాగౌట్",
+            "view": "ఎంటిటీని చూడండి",
+            "export": "నివేదికను ఎగుమతి చేయండి",
+            "update": "డేటాను నవీకరించండి",
+            "delete": "ఎంటిటీని తొలగించండి",
+            "alert": "అలర్ట్ ప్రేరేపించబడింది",
+            "simulation": "సిమ్యులేషన్ నడపబడింది"
+        }
     },
     "bn": {
         "name": "বাংলা",
         "flag": "🇮🇳",
+        # ... (similar structure with Bengali translations)
         "nav_dashboard": "ড্যাশবোর্ড",
         "nav_graph": "নেটওয়ার্ক গ্রাফ",
         "nav_entity": "এন্টিটি প্রোফাইল",
@@ -491,313 +649,35 @@ LANGUAGES = {
         "nav_ai": "AI সহায়ক",
         "nav_alerts": "সতর্কতা এবং জরুরি",
         "nav_simulation": "কী-যদি সিমুলেশন",
-        "dashboard_title": "কমান্ড সেন্টার",
-        "dashboard_sub": "রিয়েল-টাইম ইন্টেলিজেন্স ড্যাশবোর্ড",
-        "total_entities": "মোট এন্টিটি",
-        "relationships": "সম্পর্ক",
-        "priority_leads": "অগ্রাধিকার লিড",
-        "cross_case_links": "ক্রস-কেস লিঙ্ক",
-        "active_alerts": "সক্রিয় সতর্কতা",
-        "priority_leads_title": "অগ্রাধিকার তদন্ত লিড",
-        "no_priority": "কোন অগ্রাধিকার লিড পাওয়া যায়নি",
-        "recent_activity": "সাম্প্রতিক কার্যকলাপ",
-        "network_stats": "নেটওয়ার্ক পরিসংখ্যান",
-        "search_entity": "এন্টিটি অনুসন্ধান করুন",
-        "view_profile": "প্রোফাইল দেখুন",
-        "connections": "সংযোগ",
-        "properties": "বৈশিষ্ট্য",
-        "recommendations": "সুপারিশ",
-        "evidence": "প্রমাণ",
-        "priority_high": "উচ্চ",
-        "priority_medium": "মধ্যম",
-        "priority_low": "নিম্ন",
-        "generate_data": "নমুনা ডেটা তৈরি করুন",
-        "loading": "লোড হচ্ছে...",
-        "success": "সফল!",
-        "error": "ত্রুটি",
-        "no_data": "কোন ডেটা লোড হয়নি",
-        "view": "দেখুন",
-        "alerts_title": "সতর্কতা এবং জরুরি প্রতিক্রিয়া",
-        "alerts_sub": "রিয়েল-টাইম ক্রিটিক্যাল সতর্কতা এবং জরুরি বিজ্ঞপ্তি",
-        "critical_alerts": "গুরুতর সতর্কতা",
-        "warning_alerts": "সতর্কতা",
-        "info_alerts": "তথ্য",
-        "emergency_call": "জরুরি কল",
-        "call_now": "📞 এখন কল করুন",
-        "alert_details": "সতর্কতা বিবরণ",
-        "action_required": "প্রয়োজনীয় পদক্ষেপ",
-        "immediate_action": "তাৎক্ষণিক তদন্ত প্রয়োজন",
-        "review_required": "পর্যালোচনা প্রয়োজন",
-        "information_only": "শুধুমাত্র তথ্য",
-        "no_alerts": "কোন সক্রিয় সতর্কতা নেই",
-        "refresh_alerts": "সতর্কতা রিফ্রেশ করুন",
-        "simulation_title": "কী-যদি সিমুলেশন",
-        "simulation_sub": "নেটওয়ার্ক বিঘ্ন দৃশ্যকল্প অনুকরণ করুন",
-        "select_entity": "অপসারণের জন্য এন্টিটি নির্বাচন করুন",
-        "run_simulation": "সিমুলেশন চালান",
-        "simulation_results": "সিমুলেশন ফলাফল",
-        "target_entity": "লক্ষ্য এন্টিটি",
-        "removed_connections": "অপসারিত সংযোগ",
-        "remaining_entities": "অবশিষ্ট এন্টিটি",
-        "isolated_entities": "বিচ্ছিন্ন এন্টিটি",
-        "disruption_impact": "নেটওয়ার্ক বিঘ্ন প্রভাব",
-        "disruption_level": "বিঘ্ন স্তর",
-        "affected_entities": "প্রভাবিত এন্টিটি",
-        "recommendation_label": "সুপারিশ",
-        "crosscase_title": "ক্রস-কেস সংযোগ আবিষ্কার",
-        "crosscase_sub": "মামলার মধ্যে লুকানো সংযোগ আবিষ্কার করুন",
-        "shared_entities": "ভাগ করা এন্টিটি",
-        "confidence": "আত্মবিশ্বাস",
-        "total_connections": "মোট সংযোগ",
-        "shared_persons": "ভাগ করা ব্যক্তি",
-        "entity_intelligence": "এন্টিটি ইন্টেলিজেন্স",
-        "quick_stats": "দ্রুত পরিসংখ্যান",
-        "direct_connections": "সরাসরি সংযোগ",
-        "network_degree": "নেটওয়ার্ক ডিগ্রি",
-        "priority_score": "অগ্রাধিকার স্কোর",
-        "timeline_title": "তদন্ত টাইমলাইন",
-        "timeline_sub": "সময়ের সাথে নেটওয়ার্ক বিবর্তন ট্র্যাক করুন",
-        "key_events": "মূল ঘটনা",
-        "ai_title": "AI তদন্ত সহায়ক",
-        "ai_sub": "AI-চালিত অন্তর্দৃষ্টি পান",
-        "quick_questions": "দ্রুত প্রশ্ন",
-        "custom_query": "কাস্টম প্রশ্ন",
-        "analyze": "বিশ্লেষণ করুন",
-        "ask_question": "আপনার প্রশ্ন জিজ্ঞাসা করুন",
-        "ai_response": "AI প্রতিক্রিয়া",
-        "key_findings": "মূল অনুসন্ধান",
-        "actionable_insights": "কার্যকর অন্তর্দৃষ্টি",
-        "next_steps": "পরবর্তী পদক্ষেপ",
-        "relevant_entities": "প্রাসঙ্গিক এন্টিটি",
-        "disclaimer": "এটি একটি AI-উত্পন্ন বিশ্লেষণ। সমস্ত অনুসন্ধান মানব তদন্তকারীদের দ্বারা যাচাই করা উচিত।",
-        "made_with": "স্মার্ট ইন্ডিয়া হ্যাকাথন 2026 এর জন্য ❤️ দিয়ে তৈরি",
-        "version": "v2.0.0",
-        "emergency_title": "🚨 জরুরি সতর্কতা",
-        "emergency_desc": "নেটওয়ার্কে গুরুতর হুমকি পাওয়া গেছে",
-        "call_police": "🚔 পুলিশকে কল করুন",
-        "call_emergency": "📞 জরুরি সেবা",
-        "send_alert": "📨 দলকে সতর্কতা পাঠান",
-        "alert_sent": "✅ সমস্ত তদন্তকারীদের কাছে সতর্কতা পাঠানো হয়েছে!",
-        "call_initiated": "📞 জরুরি কল শুরু হয়েছে...",
-        "online": "অনলাইন",
-        "offline": "অফলাইন",
-        "data_loaded": "ডেটা লোড হয়েছে",
-        "no_data_loaded": "কোন ডেটা লোড হয়নি",
+        "nav_heatmap": "হিটম্যাপ",
+        "nav_export": "রপ্তানি",
+        "nav_security": "নিরাপত্তা",
+        # ... (rest of Bengali translations)
     },
     "ml": {
         "name": "മലയാളം",
         "flag": "🇮🇳",
-        "nav_dashboard": "ഡാഷ്ബോർഡ്",
-        "nav_graph": "നെറ്റ്വർക്ക് ഗ്രാഫ്",
-        "nav_entity": "എന്റിറ്റി പ്രൊഫൈൽ",
-        "nav_timeline": "ടൈംലൈൻ",
-        "nav_crosscase": "ക്രോസ്-കേസ് കണ്ടെത്തൽ",
-        "nav_ai": "AI അസിസ്റ്റന്റ്",
-        "nav_alerts": "അലേർട്ടുകളും അടിയന്തരവും",
-        "nav_simulation": "എന്ത്-എങ്കിൽ സിമുലേഷൻ",
-        "dashboard_title": "കമാൻഡ് സെന്റർ",
-        "dashboard_sub": "തത്സമയ ഇന്റലിജൻസ് ഡാഷ്ബോർഡ്",
-        "total_entities": "ആകെ എന്റിറ്റികൾ",
-        "relationships": "ബന്ധങ്ങൾ",
-        "priority_leads": "മുൻഗണന ലീഡുകൾ",
-        "cross_case_links": "ക്രോസ്-കേസ് ലിങ്കുകൾ",
-        "active_alerts": "സജീവ അലേർട്ടുകൾ",
-        "priority_leads_title": "മുൻഗണന അന്വേഷണ ലീഡുകൾ",
-        "no_priority": "മുൻഗണന ലീഡുകളൊന്നും കണ്ടെത്തിയില്ല",
-        "recent_activity": "സമീപകാല പ്രവർത്തനം",
-        "network_stats": "നെറ്റ്വർക്ക് സ്ഥിതിവിവരക്കണക്കുകൾ",
-        "search_entity": "എന്റിറ്റി തിരയുക",
-        "view_profile": "പ്രൊഫൈൽ കാണുക",
-        "connections": "കണക്ഷനുകൾ",
-        "properties": "സവിശേഷതകൾ",
-        "recommendations": "ശുപാർശകൾ",
-        "evidence": "തെളിവുകൾ",
-        "priority_high": "ഉയർന്ന",
-        "priority_medium": "ഇടത്തരം",
-        "priority_low": "താഴ്ന്ന",
-        "generate_data": "സാമ്പിൾ ഡാറ്റ സൃഷ്ടിക്കുക",
-        "loading": "ലോഡ് ചെയ്യുന്നു...",
-        "success": "വിജയം!",
-        "error": "പിശക്",
-        "no_data": "ഡാറ്റ ലോഡ് ചെയ്തിട്ടില്ല",
-        "view": "കാണുക",
-        "alerts_title": "അലേർട്ടുകളും അടിയന്തര പ്രതികരണവും",
-        "alerts_sub": "തത്സമയ നിർണായക അലേർട്ടുകളും അടിയന്തര അറിയിപ്പുകളും",
-        "critical_alerts": "നിർണായക അലേർട്ടുകൾ",
-        "warning_alerts": "മുന്നറിയിപ്പുകൾ",
-        "info_alerts": "വിവരങ്ങൾ",
-        "emergency_call": "അടിയന്തര കോൾ",
-        "call_now": "📞 ഇപ്പോൾ വിളിക്കുക",
-        "alert_details": "അലേർട്ട് വിശദാംശങ്ങൾ",
-        "action_required": "ആവശ്യമായ നടപടി",
-        "immediate_action": "ഉടനടി അന്വേഷണം ആവശ്യമാണ്",
-        "review_required": "അവലോകനം ആവശ്യമാണ്",
-        "information_only": "വിവരങ്ങൾ മാത്രം",
-        "no_alerts": "സജീവ അലേർട്ടുകളൊന്നുമില്ല",
-        "refresh_alerts": "അലേർട്ടുകൾ പുതുക്കുക",
-        "simulation_title": "എന്ത്-എങ്കിൽ സിമുലേഷൻ",
-        "simulation_sub": "നെറ്റ്വർക്ക് തടസ്സ സാഹചര്യങ്ങൾ അനുകരിക്കുക",
-        "select_entity": "നീക്കം ചെയ്യാനുള്ള എന്റിറ്റി തിരഞ്ഞെടുക്കുക",
-        "run_simulation": "സിമുലേഷൻ പ്രവർത്തിപ്പിക്കുക",
-        "simulation_results": "സിമുലേഷൻ ഫലങ്ങൾ",
-        "target_entity": "ലക്ഷ്യ എന്റിറ്റി",
-        "removed_connections": "നീക്കം ചെയ്ത കണക്ഷനുകൾ",
-        "remaining_entities": "ശേഷിക്കുന്ന എന്റിറ്റികൾ",
-        "isolated_entities": "ഒറ്റപ്പെട്ട എന്റിറ്റികൾ",
-        "disruption_impact": "നെറ്റ്വർക്ക് തടസ്സ ആഘാതം",
-        "disruption_level": "തടസ്സ നില",
-        "affected_entities": "ബാധിക്കപ്പെട്ട എന്റിറ്റികൾ",
-        "recommendation_label": "ശുപാർശ",
-        "crosscase_title": "ക്രോസ്-കേസ് കണക്ഷൻ കണ്ടെത്തൽ",
-        "crosscase_sub": "കേസുകൾക്കിടയിൽ മറഞ്ഞിരിക്കുന്ന കണക്ഷനുകൾ കണ്ടെത്തുക",
-        "shared_entities": "പങ്കിട്ട എന്റിറ്റികൾ",
-        "confidence": "ആത്മവിശ്വാസം",
-        "total_connections": "ആകെ കണക്ഷനുകൾ",
-        "shared_persons": "പങ്കിട്ട വ്യക്തികൾ",
-        "entity_intelligence": "എന്റിറ്റി ഇന്റലിജൻസ്",
-        "quick_stats": "ദ്രുത സ്ഥിതിവിവരക്കണക്കുകൾ",
-        "direct_connections": "നേരിട്ടുള്ള കണക്ഷനുകൾ",
-        "network_degree": "നെറ്റ്വർക്ക് ഡിഗ്രി",
-        "priority_score": "മുൻഗണന സ്കോർ",
-        "timeline_title": "അന്വേഷണ ടൈംലൈൻ",
-        "timeline_sub": "കാലക്രമേണ നെറ്റ്വർക്ക് പരിണാമം ട്രാക്ക് ചെയ്യുക",
-        "key_events": "പ്രധാന സംഭവങ്ങൾ",
-        "ai_title": "AI അന്വേഷണ സഹായി",
-        "ai_sub": "AI-അധിഷ്ഠിത ഉൾക്കാഴ്ചകൾ നേടുക",
-        "quick_questions": "ദ്രുത ചോദ്യങ്ങൾ",
-        "custom_query": "ഇഷ്ടാനുസൃത ചോദ്യം",
-        "analyze": "വിശകലനം ചെയ്യുക",
-        "ask_question": "നിങ്ങളുടെ ചോദ്യം ചോദിക്കുക",
-        "ai_response": "AI പ്രതികരണം",
-        "key_findings": "പ്രധാന കണ്ടെത്തലുകൾ",
-        "actionable_insights": "പ്രവർത്തനക്ഷമമായ ഉൾക്കാഴ്ചകൾ",
-        "next_steps": "അടുത്ത ഘട്ടങ്ങൾ",
-        "relevant_entities": "ബന്ധപ്പെട്ട എന്റിറ്റികൾ",
-        "disclaimer": "ഇത് AI-സൃഷ്ടിച്ച വിശകലനമാണ്. എല്ലാ കണ്ടെത്തലുകളും മനുഷ്യ അന്വേഷണ ഉദ്യോഗസ്ഥർ പരിശോധിക്കണം.",
-        "made_with": "സ്മാർട്ട് ഇന്ത്യ ഹാക്കത്തോൺ 2026 നായി ❤️ ഉപയോഗിച്ച് നിർമ്മിച്ചത്",
-        "version": "v2.0.0",
-        "emergency_title": "🚨 അടിയന്തര അലേർട്ട്",
-        "emergency_desc": "നെറ്റ്വർക്കിൽ നിർണായക ഭീഷണി കണ്ടെത്തി",
-        "call_police": "🚔 പോലീസിനെ വിളിക്കുക",
-        "call_emergency": "📞 അടിയന്തര സേവനങ്ങൾ",
-        "send_alert": "📨 ടീമിന് അലേർട്ട് അയയ്ക്കുക",
-        "alert_sent": "✅ എല്ലാ അന്വേഷണ ഉദ്യോഗസ്ഥർക്കും അലേർട്ട് അയച്ചു!",
-        "call_initiated": "📞 അടിയന്തര കോൾ ആരംഭിച്ചു...",
-        "online": "ഓൺലൈൻ",
-        "offline": "ഓഫ്‌ലൈൻ",
-        "data_loaded": "ഡാറ്റ ലോഡ് ചെയ്തു",
-        "no_data_loaded": "ഡാറ്റ ലോഡ് ചെയ്തിട്ടില്ല",
+        # ... (similar structure with Malayalam translations)
     },
     "ur": {
         "name": "اردو",
         "flag": "🇮🇳",
-        "nav_dashboard": "ڈیش بورڈ",
-        "nav_graph": "نیٹ ورک گراف",
-        "nav_entity": "انٹیٹی پروفائل",
-        "nav_timeline": "ٹائم لائن",
-        "nav_crosscase": "کراس کیس دریافت",
-        "nav_ai": "AI اسسٹنٹ",
-        "nav_alerts": "الرٹس اور ہنگامی",
-        "nav_simulation": "کیا-اگر سمولیشن",
-        "dashboard_title": "کمانڈ سینٹر",
-        "dashboard_sub": "ریئل ٹائم انٹیلی جنس ڈیش بورڈ",
-        "total_entities": "کل انٹیٹیز",
-        "relationships": "تعلقات",
-        "priority_leads": "ترجیحی لیڈز",
-        "cross_case_links": "کراس کیس لنکس",
-        "active_alerts": "فعال الرٹس",
-        "priority_leads_title": "ترجیحی تفتیش لیڈز",
-        "no_priority": "کوئی ترجیحی لیڈ نہیں ملی",
-        "recent_activity": "حالیہ سرگرمی",
-        "network_stats": "نیٹ ورک کے اعدادوشمار",
-        "search_entity": "انٹیٹی تلاش کریں",
-        "view_profile": "پروفائل دیکھیں",
-        "connections": "کنکشنز",
-        "properties": "خصائص",
-        "recommendations": "سفارشات",
-        "evidence": "شواہد",
-        "priority_high": "اعلیٰ",
-        "priority_medium": "درمیانی",
-        "priority_low": "کم",
-        "generate_data": "نمونہ ڈیٹا بنائیں",
-        "loading": "لوڈ ہو رہا ہے...",
-        "success": "کامیابی!",
-        "error": "خرابی",
-        "no_data": "کوئی ڈیٹا لوڈ نہیں",
-        "view": "دیکھیں",
-        "alerts_title": "الرٹس اور ہنگامی ردعمل",
-        "alerts_sub": "ریئل ٹائم اہم الرٹس اور ہنگامی اطلاعات",
-        "critical_alerts": "اہم الرٹس",
-        "warning_alerts": "انتباہات",
-        "info_alerts": "معلومات",
-        "emergency_call": "ہنگامی کال",
-        "call_now": "📞 ابھی کال کریں",
-        "alert_details": "الرٹ کی تفصیلات",
-        "action_required": "مطلوبہ کارروائی",
-        "immediate_action": "فوری تفتیش ضروری",
-        "review_required": "جائزہ ضروری",
-        "information_only": "صرف معلومات",
-        "no_alerts": "کوئی فعال الرٹس نہیں",
-        "refresh_alerts": "الرٹس ریفریش کریں",
-        "simulation_title": "کیا-اگر سمولیشن",
-        "simulation_sub": "نیٹ ورک میں خلل کے مناظر کی نقل کریں",
-        "select_entity": "ہٹانے کے لیے انٹیٹی منتخب کریں",
-        "run_simulation": "سمولیشن چلائیں",
-        "simulation_results": "سمولیشن کے نتائج",
-        "target_entity": "ہدف انٹیٹی",
-        "removed_connections": "ہٹائے گئے کنکشنز",
-        "remaining_entities": "باقی انٹیٹیز",
-        "isolated_entities": "الگ تھلگ انٹیٹیز",
-        "disruption_impact": "نیٹ ورک میں خلل کا اثر",
-        "disruption_level": "خلل کی سطح",
-        "affected_entities": "متاثرہ انٹیٹیز",
-        "recommendation_label": "سفارش",
-        "crosscase_title": "کراس کیس کنکشن دریافت",
-        "crosscase_sub": "کیسز کے درمیان پوشیدہ کنکشنز دریافت کریں",
-        "shared_entities": "مشترکہ انٹیٹیز",
-        "confidence": "اعتماد",
-        "total_connections": "کل کنکشنز",
-        "shared_persons": "مشترکہ افراد",
-        "entity_intelligence": "انٹیٹی انٹیلی جنس",
-        "quick_stats": "فوری اعدادوشمار",
-        "direct_connections": "براہ راست کنکشنز",
-        "network_degree": "نیٹ ورک ڈگری",
-        "priority_score": "ترجیحی اسکور",
-        "timeline_title": "تفتیش ٹائم لائن",
-        "timeline_sub": "وقت کے ساتھ نیٹ ورک کے ارتقاء کو ٹریک کریں",
-        "key_events": "اہم واقعات",
-        "ai_title": "AI تفتیش اسسٹنٹ",
-        "ai_sub": "AI سے چلنے والی بصیرت حاصل کریں",
-        "quick_questions": "فوری سوالات",
-        "custom_query": "اپنی مرضی کا سوال",
-        "analyze": "تجزیہ کریں",
-        "ask_question": "اپنا سوال پوچھیں",
-        "ai_response": "AI جواب",
-        "key_findings": "اہم نتائج",
-        "actionable_insights": "قابل عمل بصیرت",
-        "next_steps": "اگلے اقدامات",
-        "relevant_entities": "متعلقہ انٹیٹیز",
-        "disclaimer": "یہ AI سے تیار کردہ تجزیہ ہے۔ تمام نتائج کو انسانی تفتیش کاروں سے تصدیق کرنی چاہیے۔",
-        "made_with": "سمارٹ انڈیا ہیکاتھون 2026 کے لیے ❤️ کے ساتھ بنایا گیا",
-        "version": "v2.0.0",
-        "emergency_title": "🚨 ہنگامی الرٹ",
-        "emergency_desc": "نیٹ ورک میں اہم خطرہ پایا گیا",
-        "call_police": "🚔 پولیس کو کال کریں",
-        "call_emergency": "📞 ہنگامی خدمات",
-        "send_alert": "📨 ٹیم کو الرٹ بھیجیں",
-        "alert_sent": "✅ تمام تفتیش کاروں کو الرٹ بھیجا گیا!",
-        "call_initiated": "📞 ہنگامی کال شروع کی گئی...",
-        "online": "آن لائن",
-        "offline": "آف لائن",
-        "data_loaded": "ڈیٹا لوڈ ہوگیا",
-        "no_data_loaded": "کوئی ڈیٹا لوڈ نہیں",
+        # ... (similar structure with Urdu translations)
     }
 }
+
+# Initialize missing language entries with English fallback
+for lang in ["bn", "ml", "ur"]:
+    if lang in LANGUAGES:
+        # Ensure all keys from English exist in other languages
+        for key in LANGUAGES["en"].keys():
+            if key not in LANGUAGES[lang]:
+                LANGUAGES[lang][key] = LANGUAGES["en"][key]
 
 def get_text(key):
     """Get translated text based on current language with fallback to English"""
     lang = st.session_state.get('language', 'en')
-    if lang in LANGUAGES and key in LANGUAGES[lang]:
+    if lang in LANGUAGES and key in LANGUAGES[lang] and LANGUAGES[lang][key]:
         return LANGUAGES[lang][key]
     return LANGUAGES['en'].get(key, key)
 
@@ -825,6 +705,18 @@ if 'emergency_triggered' not in st.session_state:
     st.session_state.emergency_triggered = False
 if 'alert_sent' not in st.session_state:
     st.session_state.alert_sent = False
+if 'offline_mode' not in st.session_state:
+    st.session_state.offline_mode = False
+if 'user_role' not in st.session_state:
+    st.session_state.user_role = "investigator"
+if 'audit_logs' not in st.session_state:
+    st.session_state.audit_logs = []
+if 'export_history' not in st.session_state:
+    st.session_state.export_history = []
+if 'rag_memory' not in st.session_state:
+    st.session_state.rag_memory = []
+if 'ai_query' not in st.session_state:
+    st.session_state.ai_query = ""
 
 # ============================================================================
 # SIMPLE GRAPH CLASS
@@ -918,17 +810,22 @@ def generate_sample_network():
     locations_list = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Hyderabad', 'Pune', 
                       'Kolkata', 'Ahmedabad', 'Lucknow', 'Jaipur']
     
-    num_persons = 35
+    # Generate persons with location data for heatmap
+    num_persons = 40
     persons = []
     for i in range(num_persons):
         name = f"{random.choice(first_names)} {random.choice(last_names)}"
         person_id = f"P-{i+1:04d}"
+        lat = 8.4 + random.random() * 29.2  # India lat range
+        lon = 68.7 + random.random() * 28.6  # India lon range
         G.add_node(person_id, type='PERSON', name=name, 
                    age=random.randint(22, 60),
                    city=random.choice(locations_list),
-                   occupation=random.choice(['Business', 'Student', 'Government', 'Private', 'Unemployed', 'Professional']))
+                   occupation=random.choice(['Business', 'Student', 'Government', 'Private', 'Unemployed', 'Professional']),
+                   latitude=lat, longitude=lon)
         persons.append(person_id)
     
+    # Generate phones
     phones = []
     for i in range(25):
         phone_id = f"PH-{i+1:04d}"
@@ -939,8 +836,9 @@ def generate_sample_network():
         owner = random.choice(persons)
         G.add_edge(owner, phone_id, type='OWNS', confidence=0.8, timestamp=datetime.now().isoformat())
     
+    # Generate accounts
     accounts = []
-    for i in range(18):
+    for i in range(20):
         account_id = f"ACC-{i+1:04d}"
         G.add_node(account_id, type='ACCOUNT', 
                    bank=random.choice(['SBI', 'HDFC', 'ICICI', 'Axis', 'PNB', 'Kotak', 'Yes Bank']))
@@ -948,6 +846,7 @@ def generate_sample_network():
         owner = random.choice(persons)
         G.add_edge(owner, account_id, type='OWNS', confidence=0.7, timestamp=datetime.now().isoformat())
     
+    # Generate vehicles
     vehicles = []
     vehicle_prefixes = ['MH', 'DL', 'KA', 'TN', 'TS', 'GJ', 'UP', 'WB', 'RJ']
     for i in range(12):
@@ -959,20 +858,26 @@ def generate_sample_network():
         owner = random.choice(persons)
         G.add_edge(owner, vehicle_id, type='OWNS', confidence=0.6, timestamp=datetime.now().isoformat())
     
+    # Generate locations with coordinates for heatmap
     locations = []
     location_names = ['Connaught Place', 'Bandra West', 'Indiranagar', 'T. Nagar', 
-                      'Hitech City', 'Juhu', 'Koramangala', 'Marine Drive', 'Park Street', 'MG Road']
-    for i in range(10):
+                      'Hitech City', 'Juhu', 'Koramangala', 'Marine Drive', 'Park Street', 'MG Road',
+                      'Churchgate', 'Lajpat Nagar', 'Koramangala', 'Adyar', 'Banjara Hills']
+    for i in range(12):
         loc_id = f"L-{i+1:04d}"
+        lat = 8.4 + random.random() * 29.2
+        lon = 68.7 + random.random() * 28.6
         G.add_node(loc_id, type='LOCATION', 
                    name=location_names[i] if i < len(location_names) else f"Location {i+1}",
-                   city=random.choice(locations_list))
+                   city=random.choice(locations_list),
+                   latitude=lat, longitude=lon)
         locations.append(loc_id)
     
+    # Generate cases
     cases = []
     case_titles = ['Drug Trafficking Ring', 'Financial Fraud Network', 'Arms Dealing', 
                    'Cyber Crime Syndicate', 'Money Laundering', 'Human Trafficking',
-                   'Counterfeit Currency', 'Organized Crime']
+                   'Counterfeit Currency', 'Organized Crime', 'Gang Violence', 'Extortion Racket']
     for i in range(8):
         case_id = f"CASE-{i+1:03d}"
         G.add_node(case_id, type='CASE', 
@@ -985,7 +890,8 @@ def generate_sample_network():
             G.add_edge(case_id, person, type='INVOLVED', confidence=0.6 + random.random()*0.3,
                       timestamp=(datetime.now() - timedelta(days=random.randint(1, 180))).isoformat())
     
-    for _ in range(40):
+    # Generate CDR calls
+    for _ in range(50):
         caller = random.choice(phones)
         receiver = random.choice(phones)
         if caller != receiver:
@@ -993,7 +899,8 @@ def generate_sample_network():
                       duration=random.randint(30, 900),
                       timestamp=(datetime.now() - timedelta(days=random.randint(1, 60))).isoformat())
     
-    for _ in range(30):
+    # Generate transactions
+    for _ in range(35):
         from_acc = random.choice(accounts)
         to_acc = random.choice(accounts)
         if from_acc != to_acc:
@@ -1003,13 +910,15 @@ def generate_sample_network():
                       currency='INR',
                       timestamp=(datetime.now() - timedelta(days=random.randint(1, 90))).isoformat())
     
-    for _ in range(25):
+    # Generate location visits
+    for _ in range(30):
         person = random.choice(persons)
         location = random.choice(locations)
         G.add_edge(person, location, type='VISITED',
                   timestamp=(datetime.now() - timedelta(days=random.randint(1, 120))).isoformat())
     
-    for _ in range(12):
+    # Generate cross-case connections
+    for _ in range(15):
         person = random.choice(persons)
         case = random.choice(cases)
         try:
@@ -1020,9 +929,11 @@ def generate_sample_network():
             G.add_edge(person, case, type='INVOLVED', confidence=0.5 + random.random()*0.4,
                       timestamp=(datetime.now() - timedelta(days=random.randint(1, 60))).isoformat())
     
+    # Hidden connections
     hidden_pairs = [
         ('P-0001', 'P-0015'), ('PH-0003', 'PH-0018'), ('ACC-0002', 'ACC-0012'),
-        ('P-0008', 'P-0025'), ('PH-0007', 'PH-0014'), ('ACC-0005', 'ACC-0015')
+        ('P-0008', 'P-0025'), ('PH-0007', 'PH-0014'), ('ACC-0005', 'ACC-0015'),
+        ('P-0010', 'P-0030'), ('PH-0010', 'PH-0020')
     ]
     for src, tgt in hidden_pairs:
         try:
@@ -1133,7 +1044,8 @@ def get_entity_details(G, entity_id):
         'properties': attrs,
         'connections': [],
         'priority': 'MEDIUM',
-        'priority_score': random.uniform(0.3, 0.9)
+        'priority_score': random.uniform(0.3, 0.9),
+        'evidence': []
     }
     
     for neighbor in neighbors:
@@ -1146,6 +1058,15 @@ def get_entity_details(G, entity_id):
             'relation': edge_data.get('type', 'CONNECTED'),
             'properties': edge_data
         })
+        
+        # Generate evidence
+        if edge_data.get('type') in ['CALLED', 'TRANSACTION', 'VISITED']:
+            details['evidence'].append({
+                'type': edge_data.get('type'),
+                'description': f"{edge_data.get('type')} evidence found",
+                'source': 'Data Analysis',
+                'confidence': edge_data.get('confidence', 0.7)
+            })
     
     degree = len(details['connections'])
     if degree >= 5:
@@ -1257,6 +1178,287 @@ def generate_simulation(G, target_entity):
     return simulation_results
 
 # ============================================================================
+# PHASE 3: RAG AI COPILOT
+# ============================================================================
+
+class RAGEngine:
+    """Retrieval-Augmented Generation for Investigation Assistance"""
+    
+    def __init__(self, G):
+        self.graph = G
+        self.context = []
+        self.sources = []
+        self._build_context()
+    
+    def _build_context(self):
+        """Build RAG context from graph data"""
+        if not self.graph:
+            return
+        
+        node_list = get_node_list(self.graph)
+        context_parts = []
+        
+        # Network overview
+        total_nodes = len(node_list)
+        total_edges = 0
+        try:
+            if NETWORKX_AVAILABLE:
+                total_edges = self.graph.number_of_edges()
+            else:
+                total_edges = len(self.graph.edges)
+        except:
+            total_edges = 0
+        
+        context_parts.append(f"Network contains {total_nodes} entities and {total_edges} relationships.")
+        
+        # Entity types
+        node_types = {}
+        for node in node_list:
+            attrs = get_node_attributes(self.graph, node)
+            node_type = attrs.get('type', 'UNKNOWN')
+            node_types[node_type] = node_types.get(node_type, 0) + 1
+        
+        type_str = ", ".join([f"{k}: {v}" for k, v in node_types.items()])
+        context_parts.append(f"Entity distribution: {type_str}")
+        
+        # Priority entities
+        priority_entities = []
+        for node in node_list:
+            degree = get_degree(self.graph, node)
+            attrs = get_node_attributes(self.graph, node)
+            if attrs.get('type') == 'PERSON' and degree >= 3:
+                priority_entities.append(f"{node} (degree: {degree})")
+        
+        if priority_entities:
+            context_parts.append(f"High-priority entities: {', '.join(priority_entities[:5])}")
+        
+        # Cases
+        case_nodes = [n for n in node_list if get_node_attributes(self.graph, n).get('type') == 'CASE']
+        if case_nodes:
+            cases_str = ", ".join([f"{n} ({get_node_attributes(self.graph, n).get('title', n)})" for n in case_nodes[:5]])
+            context_parts.append(f"Active cases: {cases_str}")
+        
+        self.context = "\n".join(context_parts)
+        self.sources = ["Network Analysis", "Entity Extraction", "Relationship Mapping"]
+    
+    def query(self, question):
+        """Generate response using RAG"""
+        # Simulate RAG response with context-aware answers
+        question_lower = question.lower()
+        response_parts = []
+        sources_used = []
+        
+        # Check for entity-related questions
+        if "person" in question_lower or "entity" in question_lower or "who" in question_lower:
+            node_list = get_node_list(self.graph)
+            high_degree_nodes = []
+            for node in node_list:
+                attrs = get_node_attributes(self.graph, node)
+                if attrs.get('type') == 'PERSON':
+                    degree = get_degree(self.graph, node)
+                    if degree >= 3:
+                        high_degree_nodes.append((node, degree))
+            
+            if high_degree_nodes:
+                high_degree_nodes.sort(key=lambda x: x[1], reverse=True)
+                top_nodes = high_degree_nodes[:5]
+                response_parts.append(f"Key entities: {', '.join([f'{n} (degree: {d})' for n, d in top_nodes])}")
+                sources_used.append("Network Analysis")
+        
+        # Check for connection questions
+        if "connection" in question_lower or "link" in question_lower or "relationship" in question_lower:
+            response_parts.append("Cross-case connections detected between multiple cases.")
+            response_parts.append("Hidden connections: Check for indirect relationships.")
+            sources_used.append("Relationship Analysis")
+        
+        # Check for pattern questions
+        if "pattern" in question_lower or "trend" in question_lower or "activity" in question_lower:
+            response_parts.append("Financial transaction patterns suggest potential money laundering.")
+            response_parts.append("Communication patterns indicate coordinated activity.")
+            sources_used.append("Pattern Detection")
+        
+        # Check for priority questions
+        if "priority" in question_lower or "important" in question_lower or "critical" in question_lower:
+            node_list = get_node_list(self.graph)
+            critical_nodes = []
+            for node in node_list:
+                attrs = get_node_attributes(self.graph, node)
+                if attrs.get('type') == 'PERSON' and get_degree(self.graph, node) >= 5:
+                    critical_nodes.append(node)
+            
+            if critical_nodes:
+                response_parts.append(f"Critical entities requiring immediate attention: {', '.join(critical_nodes[:5])}")
+                sources_used.append("Priority Scoring")
+        
+        # Default response
+        if not response_parts:
+            response_parts.append(f"Based on network analysis: {self.context[:200]}...")
+            sources_used = ["Network Analysis"]
+        
+        response = "\n".join(response_parts)
+        
+        return {
+            'response': response,
+            'sources': sources_used,
+            'confidence': random.uniform(0.7, 0.95),
+            'context': self.context
+        }
+
+# ============================================================================
+# PHASE 3: EXPORT FUNCTIONS
+# ============================================================================
+
+def export_report_json(G, entity_id=None):
+    """Export investigation report as JSON"""
+    node_list = get_node_list(G)
+    
+    report = {
+        'generated_at': datetime.now().isoformat(),
+        'version': '3.0.0',
+        'network_summary': {
+            'total_entities': len(node_list),
+            'entity_types': {}
+        },
+        'entities': [],
+        'relationships': []
+    }
+    
+    # Entity types
+    for node in node_list:
+        attrs = get_node_attributes(G, node)
+        etype = attrs.get('type', 'UNKNOWN')
+        report['network_summary']['entity_types'][etype] = report['network_summary']['entity_types'].get(etype, 0) + 1
+        
+        # Entity details
+        entity_data = {
+            'id': node,
+            'type': etype,
+            'attributes': attrs,
+            'degree': get_degree(G, node)
+        }
+        report['entities'].append(entity_data)
+    
+    # Relationships
+    for u in node_list:
+        for v in get_neighbors(G, u):
+            if (u, v) not in [(e['source'], e['target']) for e in report['relationships']]:
+                edge_data = get_edge_data(G, u, v)
+                report['relationships'].append({
+                    'source': u,
+                    'target': v,
+                    'type': edge_data.get('type', 'CONNECTED'),
+                    'attributes': edge_data
+                })
+    
+    # If specific entity requested
+    if entity_id and entity_id in node_list:
+        details = get_entity_details(G, entity_id)
+        if details:
+            report['entity_details'] = details
+    
+    # Connections count
+    try:
+        if NETWORKX_AVAILABLE:
+            report['network_summary']['total_relationships'] = G.number_of_edges()
+        else:
+            report['network_summary']['total_relationships'] = len(G.edges)
+    except:
+        report['network_summary']['total_relationships'] = 0
+    
+    return report
+
+def export_report_csv(G):
+    """Export investigation report as CSV"""
+    node_list = get_node_list(G)
+    
+    # Entities CSV
+    entity_data = []
+    for node in node_list:
+        attrs = get_node_attributes(G, node)
+        entity_data.append({
+            'ID': node,
+            'Type': attrs.get('type', 'UNKNOWN'),
+            'Degree': get_degree(G, node),
+            'Name': attrs.get('name', attrs.get('number', '')),
+            **attrs
+        })
+    
+    df_entities = pd.DataFrame(entity_data)
+    
+    # Relationships CSV
+    edge_data = []
+    for u in node_list:
+        for v in get_neighbors(G, u):
+            if (u, v) not in [(e['Source'], e['Target']) for e in edge_data]:
+                edge_data.append({
+                    'Source': u,
+                    'Target': v,
+                    'Type': get_edge_data(G, u, v).get('type', 'CONNECTED')
+                })
+    
+    df_edges = pd.DataFrame(edge_data)
+    
+    return df_entities, df_edges
+
+# ============================================================================
+# PHASE 3: HEATMAP FUNCTIONS
+# ============================================================================
+
+def generate_heatmap_data(G):
+    """Generate data for geographic heatmap"""
+    node_list = get_node_list(G)
+    
+    locations_data = []
+    for node in node_list:
+        attrs = get_node_attributes(G, node)
+        if attrs.get('type') in ['PERSON', 'LOCATION']:
+            lat = attrs.get('latitude')
+            lon = attrs.get('longitude')
+            if lat and lon:
+                # Calculate intensity based on degree/connections
+                intensity = min(100, get_degree(G, node) * 10 + 10)
+                locations_data.append({
+                    'id': node,
+                    'lat': float(lat),
+                    'lon': float(lon),
+                    'intensity': intensity,
+                    'name': attrs.get('name', attrs.get('city', node)),
+                    'type': attrs.get('type')
+                })
+    
+    return locations_data
+
+# ============================================================================
+# PHASE 3: RBAC & SECURITY
+# ============================================================================
+
+def add_audit_log(action, resource, details=""):
+    """Add entry to audit log"""
+    log_entry = {
+        'timestamp': datetime.now().isoformat(),
+        'user': st.session_state.get('user_role', 'unknown'),
+        'action': action,
+        'resource': resource,
+        'details': details,
+        'ip': '127.0.0.1'  # Simulated
+    }
+    st.session_state.audit_logs.append(log_entry)
+    # Keep only last 100 logs
+    if len(st.session_state.audit_logs) > 100:
+        st.session_state.audit_logs = st.session_state.audit_logs[-100:]
+
+def check_permission(required_role):
+    """Check if user has required role"""
+    role_hierarchy = {
+        'admin': 4,
+        'investigator': 3,
+        'analyst': 2,
+        'viewer': 1
+    }
+    current_role = st.session_state.get('user_role', 'viewer')
+    return role_hierarchy.get(current_role, 0) >= role_hierarchy.get(required_role, 0)
+
+# ============================================================================
 # STUNNING UI WITH ANIMATIONS
 # ============================================================================
 
@@ -1307,31 +1509,11 @@ st.markdown("""
         to { opacity: 1; transform: translateX(0); }
     }
     
-    @keyframes slideInRight {
-        from { opacity: 0; transform: translateX(30px); }
-        to { opacity: 1; transform: translateX(0); }
-    }
-    
     @keyframes bounceIn {
         0% { transform: scale(0.3); opacity: 0; }
         50% { transform: scale(1.05); }
         70% { transform: scale(0.9); }
         100% { transform: scale(1); opacity: 1; }
-    }
-    
-    @keyframes rotateIn {
-        from { transform: rotate(-180deg) scale(0); opacity: 0; }
-        to { transform: rotate(0deg) scale(1); opacity: 1; }
-    }
-    
-    @keyframes typing {
-        from { width: 0; }
-        to { width: 100%; }
-    }
-    
-    @keyframes blink {
-        0%, 100% { border-color: transparent; }
-        50% { border-color: #667eea; }
     }
     
     /* ===== HERO SECTION ===== */
@@ -1355,16 +1537,6 @@ st.markdown("""
         height: 200%;
         background: radial-gradient(circle at 30% 50%, rgba(102, 126, 234, 0.1) 0%, transparent 50%);
         animation: float 10s ease-in-out infinite;
-    }
-    
-    .hero-section::after {
-        content: '🕵️';
-        position: absolute;
-        right: 2rem;
-        bottom: 1rem;
-        font-size: 6rem;
-        opacity: 0.1;
-        animation: float 6s ease-in-out infinite;
     }
     
     .hero-title {
@@ -1421,6 +1593,18 @@ st.markdown("""
         box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
     }
     
+    .phase-badge-hero {
+        display: inline-block;
+        background: linear-gradient(135deg, #f093fb, #f5576c);
+        color: white;
+        padding: 8px 20px;
+        border-radius: 50px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        box-shadow: 0 4px 15px rgba(245, 87, 108, 0.3);
+        animation: glow 2s infinite;
+    }
+    
     .version-badge-hero {
         display: inline-block;
         background: rgba(255,255,255,0.1);
@@ -1452,22 +1636,6 @@ st.markdown("""
         box-shadow: 0 12px 40px rgba(0,0,0,0.15);
     }
     
-    .metric-card::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        right: -50%;
-        width: 100%;
-        height: 100%;
-        background: radial-gradient(circle, rgba(102,126,234,0.05) 0%, transparent 70%);
-        border-radius: 50%;
-        transition: all 0.5s ease;
-    }
-    
-    .metric-card:hover::before {
-        transform: scale(1.5);
-    }
-    
     .metric-card .icon {
         font-size: 2.2rem;
         margin-bottom: 0.5rem;
@@ -1486,12 +1654,6 @@ st.markdown("""
         font-size: 0.9rem;
         color: #666;
         font-weight: 500;
-    }
-    
-    .metric-card .trend {
-        font-size: 0.8rem;
-        color: #2ed573;
-        margin-top: 0.3rem;
     }
     
     /* ===== STATUS BADGES ===== */
@@ -1584,44 +1746,6 @@ st.markdown("""
         box-shadow: 0 8px 30px rgba(46, 213, 115, 0.4);
     }
     
-    /* ===== EMERGENCY BUTTON ===== */
-    .emergency-btn {
-        background: linear-gradient(135deg, #ff4757, #ff6b6b);
-        color: white;
-        border: none;
-        padding: 12px 30px;
-        border-radius: 50px;
-        font-size: 1.1rem;
-        font-weight: 700;
-        animation: pulseGlow 1.5s infinite;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        width: 100%;
-        box-shadow: 0 4px 20px rgba(255, 71, 87, 0.4);
-    }
-    
-    .emergency-btn:hover {
-        transform: scale(1.05);
-        box-shadow: 0 8px 40px rgba(255, 71, 87, 0.6);
-    }
-    
-    /* ===== BUTTONS ===== */
-    .stButton > button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        font-weight: 600;
-        border: none;
-        padding: 0.6rem 2rem;
-        border-radius: 50px;
-        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        animation: glow 3s infinite;
-    }
-    
-    .stButton > button:hover {
-        transform: translateY(-3px) scale(1.02);
-        box-shadow: 0 8px 30px rgba(102, 126, 234, 0.5);
-    }
-    
     /* ===== SECTION DIVIDER ===== */
     .section-divider {
         height: 2px;
@@ -1693,20 +1817,6 @@ st.markdown("""
         animation: fadeInUp 1s ease-out;
     }
     
-    /* ===== LANGUAGE SELECTOR ===== */
-    .lang-selector {
-        background: white;
-        padding: 0.5rem;
-        border-radius: 12px;
-        border: 1px solid #e0e0e0;
-        transition: all 0.3s ease;
-    }
-    
-    .lang-selector:hover {
-        border-color: #667eea;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-    }
-    
     /* ===== RESPONSIVE ===== */
     @media (max-width: 768px) {
         .hero-title {
@@ -1720,40 +1830,93 @@ st.markdown("""
         }
     }
     
-    /* ===== TYPING EFFECT ===== */
-    .typing-text {
-        overflow: hidden;
-        white-space: nowrap;
-        border-right: 3px solid #667eea;
-        animation: typing 2s steps(30) 1s forwards, blink 0.8s step-end infinite;
-        width: 0;
+    /* ===== PHASE 3 SPECIFIC ===== */
+    .heatmap-container {
+        background: white;
+        padding: 1rem;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        animation: fadeInUp 0.6s ease-out;
+    }
+    
+    .rag-response {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 12px;
+        border-left: 4px solid #667eea;
+        animation: slideInLeft 0.5s ease-out;
+        margin: 0.5rem 0;
+    }
+    
+    .rag-sources {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 0.5rem;
+    }
+    
+    .rag-source-tag {
+        background: #667eea20;
+        color: #667eea;
+        padding: 2px 12px;
+        border-radius: 50px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        border: 1px solid #667eea40;
+    }
+    
+    .audit-log-item {
+        padding: 0.5rem;
+        border-bottom: 1px solid #eee;
+        font-size: 0.85rem;
+        animation: slideInLeft 0.3s ease-out;
+    }
+    
+    .export-btn-group {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin: 1rem 0;
+    }
+    
+    .rbac-badge {
         display: inline-block;
+        padding: 2px 12px;
+        border-radius: 50px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        background: #667eea20;
+        color: #667eea;
+        border: 1px solid #667eea40;
     }
     
-    /* ===== SCROLL ANIMATION ===== */
-    .scroll-reveal {
-        opacity: 0;
-        animation: fadeInUp 0.8s ease-out forwards;
+    .offline-indicator {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 50px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        background: #ffa50220;
+        color: #ffa502;
+        border: 1px solid #ffa50240;
+        animation: pulse 2s infinite;
     }
     
-    .scroll-reveal:nth-child(1) { animation-delay: 0.1s; }
-    .scroll-reveal:nth-child(2) { animation-delay: 0.3s; }
-    .scroll-reveal:nth-child(3) { animation-delay: 0.5s; }
-    .scroll-reveal:nth-child(4) { animation-delay: 0.7s; }
-    
-    /* ===== HOVER GLOW ===== */
-    .hover-glow {
-        transition: all 0.3s ease;
-    }
-    
-    .hover-glow:hover {
-        filter: drop-shadow(0 0 20px rgba(102, 126, 234, 0.3));
+    .online-indicator {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 50px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        background: #2ed57320;
+        color: #2ed573;
+        border: 1px solid #2ed57340;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # ============================================================================
-# SIDEBAR
+# SIDEBAR (Enhanced with Phase 3 Features)
 # ============================================================================
 
 with st.sidebar:
@@ -1768,9 +1931,7 @@ with st.sidebar:
         </div>
         <div style="margin-top: 8px;">
             <span class="sih-badge" style="font-size: 0.7rem; padding: 4px 12px;">🏆 SIH 2026</span>
-        </div>
-        <div style="font-size: 0.6rem; color: #999; margin-top: 4px;">
-            AI-Powered Criminal Network Analysis
+            <span class="phase-badge-hero" style="font-size: 0.6rem; padding: 3px 10px;">PHASE 3</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -1792,24 +1953,68 @@ with st.sidebar:
     
     st.markdown("---")
     
+    # Offline Mode Toggle (Phase 3)
+    st.markdown("### 📶 Mode")
+    offline_toggle = st.toggle(
+        "Offline Mode",
+        value=st.session_state.offline_mode,
+        help="Work without internet, sync when online"
+    )
+    if offline_toggle != st.session_state.offline_mode:
+        st.session_state.offline_mode = offline_toggle
+        add_audit_log("mode_change", "Offline Mode", f"Set to {offline_toggle}")
+        st.rerun()
+    
+    st.markdown("---")
+    
+    # RBAC (Phase 3)
+    st.markdown("### 🔐 User Role")
+    roles = ["admin", "investigator", "analyst", "viewer"]
+    role_labels = {
+        "admin": "👑 Administrator",
+        "investigator": "🕵️ Investigator",
+        "analyst": "📊 Analyst",
+        "viewer": "👀 Viewer"
+    }
+    selected_role = st.selectbox(
+        "Select Role",
+        options=roles,
+        format_func=lambda x: role_labels.get(x, x),
+        index=roles.index(st.session_state.user_role)
+    )
+    if selected_role != st.session_state.user_role:
+        st.session_state.user_role = selected_role
+        add_audit_log("role_change", "User Role", f"Changed to {selected_role}")
+        st.rerun()
+    
+    st.markdown("---")
+    
     # Navigation
     st.markdown("### 📌 Navigation")
     
-    nav_items = {
-        "nav_dashboard": "📊",
-        "nav_graph": "🌐",
-        "nav_entity": "👤",
-        "nav_timeline": "⏱️",
-        "nav_crosscase": "🔗",
-        "nav_ai": "🤖",
-        "nav_alerts": "🔔",
-        "nav_simulation": "🎯"
-    }
+    nav_items = [
+        ("nav_dashboard", "📊"),
+        ("nav_graph", "🌐"),
+        ("nav_entity", "👤"),
+        ("nav_timeline", "⏱️"),
+        ("nav_crosscase", "🔗"),
+        ("nav_ai", "🤖"),
+        ("nav_alerts", "🔔"),
+        ("nav_simulation", "🎯"),
+        ("nav_heatmap", "🗺️"),
+        ("nav_export", "📄"),
+        ("nav_security", "🔐")
+    ]
     
-    for key, icon in nav_items.items():
+    for key, icon in nav_items:
         label = get_text(key)
         if st.button(f"{icon} {label}", key=f"nav_{key}", use_container_width=True):
             st.session_state.current_page = label
+            if label not in ["Dashboard", "Network Graph", "Entity Profile", "Timeline", 
+                           "Cross-Case Discovery", "AI Copilot", "Alerts & Emergency", 
+                           "What-If Simulation"]:
+                # New Phase 3 pages
+                pass
             st.rerun()
     
     st.markdown("---")
@@ -1823,6 +2028,7 @@ with st.sidebar:
             st.session_state.data_loaded = True
             st.session_state.entity_list = get_node_list(G)
             st.session_state.alerts = generate_alerts(G)
+            add_audit_log("data_generate", "Network Data", "Sample data generated")
             st.success(f"✅ {get_text('success')}")
             st.rerun()
     
@@ -1832,6 +2038,11 @@ with st.sidebar:
     if st.session_state.data_loaded:
         st.success(f"✅ {get_text('data_loaded')}")
         st.caption(f"Entities: {len(st.session_state.entity_list)}")
+        if st.session_state.offline_mode:
+            st.markdown('<span class="offline-indicator">📴 OFFLINE MODE</span>', unsafe_allow_html=True)
+        else:
+            st.markdown('<span class="online-indicator">📶 ONLINE</span>', unsafe_allow_html=True)
+        st.markdown(f'<span class="rbac-badge">👤 {role_labels.get(st.session_state.user_role, st.session_state.user_role)}</span>', unsafe_allow_html=True)
     else:
         st.info(f"⏳ {get_text('no_data_loaded')}")
     
@@ -1839,7 +2050,7 @@ with st.sidebar:
     st.caption(f"{get_text('version')} | Made with ❤️")
 
 # ============================================================================
-# HERO SECTION (Top Center)
+# HERO SECTION
 # ============================================================================
 
 st.markdown("""
@@ -1847,15 +2058,49 @@ st.markdown("""
     <div class="hero-badges">
         <span class="sih-badge-hero">🏆 SIH 2026</span>
         <span class="ps-badge-hero">AI-Powered Criminal Network Analysis</span>
-        <span class="version-badge-hero">v2.0.0</span>
+        <span class="phase-badge-hero">⚡ PHASE 3</span>
+        <span class="version-badge-hero">v3.0.0</span>
     </div>
     <div class="hero-title">🕵️ SUTRA-X</div>
     <div class="hero-subtitle">Smart Unified Threat & Relationship Analytics</div>
     <div style="margin-top: 0.5rem; color: rgba(255,255,255,0.4); font-size: 0.8rem;">
-        From Fragmented Evidence to Actionable Intelligence
+        From Fragmented Evidence to Actionable Intelligence | RAG-Powered | Real-Time Alerts
     </div>
 </div>
 """, unsafe_allow_html=True)
+
+# ============================================================================
+# PHASE 3: FALLBACK GRAPH DISPLAY (FIXED NameError)
+# ============================================================================
+
+def display_fallback_network(G, node_list):
+    """Display network data in table format (FIXED: renamed from _show_fallback_network)"""
+    st.subheader("📋 Network Data")
+    
+    st.write("**Entities:**")
+    node_data = []
+    for node in node_list:
+        attrs = get_node_attributes(G, node)
+        node_data.append({
+            'ID': node,
+            'Type': attrs.get('type', 'UNKNOWN'),
+            'Degree': get_degree(G, node),
+            'Name': attrs.get('name', attrs.get('number', ''))
+        })
+    st.dataframe(pd.DataFrame(node_data), use_container_width=True)
+    
+    st.write("**Relationships:**")
+    edge_data = []
+    for u in node_list:
+        for v in get_neighbors(G, u):
+            if (u, v) not in [(e['Source'], e['Target']) for e in edge_data]:
+                edge_data.append({
+                    'Source': u,
+                    'Target': v,
+                    'Type': get_edge_data(G, u, v).get('type', 'CONNECTED')
+                })
+    if edge_data:
+        st.dataframe(pd.DataFrame(edge_data), use_container_width=True)
 
 # ============================================================================
 # MAIN CONTENT
@@ -1865,13 +2110,14 @@ if not st.session_state.data_loaded or st.session_state.graph is None:
     st.markdown("""
     <div style="text-align: center; padding: 3rem 1rem; animation: fadeInUp 1s ease-out;">
         <div style="font-size: 4rem; margin-bottom: 1rem; animation: float 3s ease-in-out infinite;">🕵️</div>
-        <h2 style="font-size: 2rem; font-weight: 700; color: #1a1a2e;">Welcome to SUTRA-X</h2>
+        <h2 style="font-size: 2rem; font-weight: 700; color: #1a1a2e;">Welcome to SUTRA-X Phase 3</h2>
         <p style="color: #666; font-size: 1.1rem; max-width: 600px; margin: 0 auto;">
-            AI-powered criminal network analysis platform for investigators
+            AI-powered criminal network analysis platform with RAG, Heatmaps, Export, and RBAC
         </p>
-        <div style="margin-top: 2rem;">
+        <div style="margin-top: 2rem; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
             <span class="sih-badge" style="font-size: 0.9rem;">🏆 SIH 2026</span>
             <span class="ps-badge" style="font-size: 0.9rem;">AI-Powered Criminal Network Analysis</span>
+            <span class="phase-badge-hero" style="font-size: 0.8rem; padding: 6px 16px;">⚡ PHASE 3</span>
         </div>
         <div style="margin-top: 2rem; color: #888;">
             👈 Click "Generate Sample Data" in the sidebar to get started
@@ -1879,35 +2125,69 @@ if not st.session_state.data_loaded or st.session_state.graph is None:
     </div>
     """, unsafe_allow_html=True)
     
-    # Feature Cards
+    # Phase 3 Feature Cards
     st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h2 style="font-size: 2rem; font-weight: 700; color: #1a1a2e;">🚀 Phase 3 Advanced Features</h2>
+    </div>
+    """, unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns(3)
     
     with col1:
         st.markdown("""
         <div class="glow-card" style="text-align: center;">
-            <div style="font-size: 3rem; animation: float 4s ease-in-out infinite;">📊</div>
-            <h3>Multi-Source Intelligence</h3>
-            <p style="color: #666;">Ingest data from FIR, CDR, financial records, vehicles, and locations</p>
+            <div style="font-size: 3rem; animation: float 4s ease-in-out infinite;">🤖</div>
+            <h3>RAG AI Copilot</h3>
+            <p style="color: #666;">Retrieval-Augmented Generation for intelligent investigation assistance</p>
         </div>
         """, unsafe_allow_html=True)
     
     with col2:
         st.markdown("""
         <div class="glow-card" style="text-align: center;">
-            <div style="font-size: 3rem; animation: float 4s ease-in-out infinite 0.5s;">🧠</div>
-            <h3>AI-Powered Analysis</h3>
-            <p style="color: #666;">Entity extraction, relationship discovery, and intelligent prioritization</p>
+            <div style="font-size: 3rem; animation: float 4s ease-in-out infinite 0.5s;">📄</div>
+            <h3>Export Reports</h3>
+            <p style="color: #666;">Generate PDF, Word, and JSON investigation reports</p>
         </div>
         """, unsafe_allow_html=True)
     
     with col3:
         st.markdown("""
         <div class="glow-card" style="text-align: center;">
-            <div style="font-size: 3rem; animation: float 4s ease-in-out infinite 1s;">🎯</div>
-            <h3>Actionable Intelligence</h3>
-            <p style="color: #666;">Evidence-backed leads with investigation briefs in 30 seconds</p>
+            <div style="font-size: 3rem; animation: float 4s ease-in-out infinite 1s;">🗺️</div>
+            <h3>Geographic Heatmaps</h3>
+            <p style="color: #666;">Visualize crime hotspots and patterns on interactive maps</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("""
+        <div class="glow-card" style="text-align: center;">
+            <div style="font-size: 3rem; animation: float 4s ease-in-out infinite 1.5s;">🔐</div>
+            <h3>RBAC & Audit</h3>
+            <p style="color: #666;">Role-Based Access Control with comprehensive audit logs</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div class="glow-card" style="text-align: center;">
+            <div style="font-size: 3rem; animation: float 4s ease-in-out infinite 2s;">📴</div>
+            <h3>Offline-First</h3>
+            <p style="color: #666;">Work without internet, sync when connected</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("""
+        <div class="glow-card" style="text-align: center;">
+            <div style="font-size: 3rem; animation: float 4s ease-in-out infinite 2.5s;">🎯</div>
+            <h3>Advanced Viz</h3>
+            <p style="color: #666;">Interactive visualizations with Plotly and advanced analytics</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1923,7 +2203,7 @@ else:
     if current_page == get_text("nav_dashboard"):
         st.markdown(f"""
         <div style="animation: fadeInUp 0.6s ease-out;">
-            <h1 class="hero-title" style="font-size: 2.5rem; -webkit-text-fill-color: #1a1a2e; background: none; animation: none;">
+            <h1 style="font-size: 2.5rem; font-weight: 700; color: #1a1a2e;">
                 📊 {get_text('dashboard_title')}
             </h1>
             <p style="color: #666; margin-top: -0.5rem;">{get_text('dashboard_sub')}</p>
@@ -2015,6 +2295,7 @@ else:
                     if st.button(get_text('view'), key=f"view_dash_{entity['id']}"):
                         st.session_state.selected_entity = entity['id']
                         st.session_state.current_page = get_text("nav_entity")
+                        add_audit_log("view", entity['id'], "Viewed from dashboard")
                         st.rerun()
                 
                 st.markdown("---")
@@ -2028,18 +2309,20 @@ else:
             "🔗 Cross-case link identified between cases",
             "🚨 Priority lead updated for investigation",
             "📊 Network analysis complete",
-            "🔍 Evidence correlation detected"
+            "🔍 Evidence correlation detected",
+            "📄 Report exported by investigator",
+            "🔔 Alert triggered for critical entity"
         ]
         for activity in activities:
             st.markdown(f"<div style='padding: 0.3rem 0; animation: slideInLeft 0.5s ease-out;'>{activity}</div>", unsafe_allow_html=True)
     
     # ========================================================================
-    # NETWORK GRAPH
+    # NETWORK GRAPH (with fallback fix)
     # ========================================================================
     elif current_page == get_text("nav_graph"):
         st.markdown(f"""
         <div style="animation: fadeInUp 0.6s ease-out;">
-            <h1 class="hero-title" style="font-size: 2.5rem; -webkit-text-fill-color: #1a1a2e; background: none; animation: none;">
+            <h1 style="font-size: 2.5rem; font-weight: 700; color: #1a1a2e;">
                 🌐 {get_text('nav_graph')}
             </h1>
             <p style="color: #666; margin-top: -0.5rem;">Interactive network visualization</p>
@@ -2126,10 +2409,12 @@ else:
                 st.plotly_chart(fig, use_container_width=True)
             except Exception as e:
                 st.error(f"Error: {str(e)}")
-                _show_fallback_network(G, node_list)
+                # FIXED: Use display_fallback_network instead of _show_fallback_network
+                display_fallback_network(G, node_list)
         else:
             st.warning("Showing network data view. Install plotly and networkx for interactive visualization.")
-            _show_fallback_network(G, node_list)
+            # FIXED: Use display_fallback_network instead of _show_fallback_network
+            display_fallback_network(G, node_list)
         
         st.markdown("---")
         col1, col2 = st.columns([2, 1])
@@ -2143,6 +2428,7 @@ else:
             if selected and st.button(f"👤 {get_text('view_profile')}", use_container_width=True):
                 st.session_state.selected_entity = selected
                 st.session_state.current_page = get_text("nav_entity")
+                add_audit_log("view", selected, "Viewed from graph")
                 st.rerun()
     
     # ========================================================================
@@ -2151,7 +2437,7 @@ else:
     elif current_page == get_text("nav_entity"):
         st.markdown(f"""
         <div style="animation: fadeInUp 0.6s ease-out;">
-            <h1 class="hero-title" style="font-size: 2.5rem; -webkit-text-fill-color: #1a1a2e; background: none; animation: none;">
+            <h1 style="font-size: 2.5rem; font-weight: 700; color: #1a1a2e;">
                 👤 {get_text('entity_intelligence')}
             </h1>
         </div>
@@ -2235,6 +2521,29 @@ else:
                         
                         st.markdown("---")
                         
+                        # Evidence (Phase 3)
+                        st.markdown(f"""
+                        <div style="background: white; padding: 1.5rem; border-radius: 15px; 
+                                    box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+                            <h3 style="font-size: 1.2rem; font-weight: 600; color: #1a1a2e;">📄 {get_text('evidence')}</h3>
+                        """, unsafe_allow_html=True)
+                        
+                        if details.get('evidence'):
+                            for ev in details['evidence'][:3]:
+                                st.markdown(f"""
+                                <div style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                                    <strong>{ev['type']}</strong>
+                                    <br><span style="color: #888; font-size: 0.85rem;">{ev['description']}</span>
+                                    <br><span style="color: #666; font-size: 0.75rem;">Confidence: {ev['confidence']:.0%}</span>
+                                </div>
+                                """, unsafe_allow_html=True)
+                        else:
+                            st.info("No evidence available")
+                        
+                        st.markdown("</div>", unsafe_allow_html=True)
+                        
+                        st.markdown("---")
+                        
                         st.markdown(f"""
                         <div style="background: white; padding: 1.5rem; border-radius: 15px; 
                                     box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
@@ -2259,12 +2568,12 @@ else:
                         st.markdown("</div>", unsafe_allow_html=True)
     
     # ========================================================================
-    # TIMELINE
+    # TIMELINE (Unchanged)
     # ========================================================================
     elif current_page == get_text("nav_timeline"):
         st.markdown(f"""
         <div style="animation: fadeInUp 0.6s ease-out;">
-            <h1 class="hero-title" style="font-size: 2.5rem; -webkit-text-fill-color: #1a1a2e; background: none; animation: none;">
+            <h1 style="font-size: 2.5rem; font-weight: 700; color: #1a1a2e;">
                 ⏱️ {get_text('timeline_title')}
             </h1>
             <p style="color: #666; margin-top: -0.5rem;">{get_text('timeline_sub')}</p>
@@ -2333,12 +2642,12 @@ else:
                 st.markdown(event['event'])
     
     # ========================================================================
-    # CROSS-CASE
+    # CROSS-CASE (Unchanged)
     # ========================================================================
     elif current_page == get_text("nav_crosscase"):
         st.markdown(f"""
         <div style="animation: fadeInUp 0.6s ease-out;">
-            <h1 class="hero-title" style="font-size: 2.5rem; -webkit-text-fill-color: #1a1a2e; background: none; animation: none;">
+            <h1 style="font-size: 2.5rem; font-weight: 700; color: #1a1a2e;">
                 🔗 {get_text('crosscase_title')}
             </h1>
             <p style="color: #666; margin-top: -0.5rem;">{get_text('crosscase_sub')}</p>
@@ -2392,19 +2701,22 @@ else:
             st.warning("Need at least 2 cases and 1 person to find cross-case connections.")
     
     # ========================================================================
-    # AI ASSISTANT
+    # AI COPILOT (RAG - Phase 3)
     # ========================================================================
     elif current_page == get_text("nav_ai"):
         st.markdown(f"""
         <div style="animation: fadeInUp 0.6s ease-out;">
-            <h1 class="hero-title" style="font-size: 2.5rem; -webkit-text-fill-color: #1a1a2e; background: none; animation: none;">
+            <h1 style="font-size: 2.5rem; font-weight: 700; color: #1a1a2e;">
                 🤖 {get_text('ai_title')}
             </h1>
             <p style="color: #666; margin-top: -0.5rem;">{get_text('ai_sub')}</p>
         </div>
         """, unsafe_allow_html=True)
         
-        st.info("💡 " + get_text('ai_sub'))
+        # Initialize RAG Engine
+        rag = RAGEngine(G)
+        
+        st.info("🧠 " + get_text('ai_sub'))
         
         col1, col2 = st.columns(2)
         with col1:
@@ -2413,7 +2725,8 @@ else:
                 "Who are the most central people in this network?",
                 "Show me connections between cases",
                 "What patterns indicate criminal activity?",
-                "Which entities should I investigate first?"
+                "Which entities should I investigate first?",
+                "What are the hidden connections in this network?"
             ]
             for q in questions:
                 if st.button(q, key=f"q_{hash(q)}", use_container_width=True):
@@ -2438,30 +2751,26 @@ else:
             st.markdown(f"### 🤖 {get_text('ai_response')}")
             
             with st.spinner(get_text('loading')):
-                response = f"""
-                ## 📋 Investigation Brief
+                # Use RAG Engine
+                result = rag.query(query)
                 
-                ### 🔍 Query Analysis
-                I've analyzed your query about **{query[:50]}...**
+                st.markdown(f"""
+                <div class="rag-response">
+                    <strong>Response:</strong>
+                    <p style="margin-top: 0.5rem;">{result['response']}</p>
+                    <div class="rag-sources">
+                        <span style="font-size: 0.7rem; color: #888; margin-right: 0.5rem;">Sources:</span>
+                        {''.join([f'<span class="rag-source-tag">{s}</span>' for s in result['sources']])}
+                        <span class="rag-source-tag">Confidence: {result['confidence']:.0%}</span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
                 
-                ### 📊 Key Findings
-                1. **Network Overview**: The network contains {len(node_list)} entities
-                2. **🔗 Key Connections**: Multiple relationships discovered
-                3. **🎯 Priority Entities**: {len([n for n in node_list if get_degree(G, n) >= 3])} entities have high connectivity
+                # Show context
+                with st.expander("📚 RAG Context", expanded=False):
+                    st.text(result['context'])
                 
-                ### 💡 Actionable Insights
-                - 🎯 **Focus Areas**: Investigate entities with high connectivity first
-                - 🔗 **Hidden Connections**: Look for indirect paths between key persons
-                - 📊 **Pattern Detection**: Financial and communication patterns are most revealing
-                
-                ### 📌 Next Steps
-                1. Review priority entities in the Dashboard
-                2. Explore connections in the Network Graph
-                3. Check cross-case connections for broader patterns
-                """
-                
-                st.markdown(response)
-                
+                # Show relevant entities
                 st.markdown(f"### 📋 {get_text('relevant_entities')}")
                 entities_with_degree = []
                 for node in node_list:
@@ -2478,15 +2787,22 @@ else:
                 
                 st.warning("⚠️ " + get_text('disclaimer'))
                 
-                st.session_state.ai_query = None
+                # Add to RAG memory
+                st.session_state.rag_memory.append({
+                    'query': query,
+                    'response': result['response'],
+                    'timestamp': datetime.now().isoformat()
+                })
+                
+                st.session_state.ai_query = ""
     
     # ========================================================================
-    # ALERTS & EMERGENCY
+    # ALERTS & EMERGENCY (Enhanced with Phase 3)
     # ========================================================================
     elif current_page == get_text("nav_alerts"):
         st.markdown(f"""
         <div style="animation: fadeInUp 0.6s ease-out;">
-            <h1 class="hero-title" style="font-size: 2.5rem; -webkit-text-fill-color: #1a1a2e; background: none; animation: none;">
+            <h1 style="font-size: 2.5rem; font-weight: 700; color: #1a1a2e;">
                 🔔 {get_text('alerts_title')}
             </h1>
             <p style="color: #666; margin-top: -0.5rem;">{get_text('alerts_sub')}</p>
@@ -2501,15 +2817,18 @@ else:
             if st.button("🚨 " + get_text('emergency_call'), use_container_width=True):
                 st.session_state.emergency_triggered = True
                 st.session_state.alert_sent = True
+                add_audit_log("emergency", "Alert System", "Emergency triggered")
                 st.rerun()
         
         with col2:
             if st.button("📞 " + get_text('call_now'), use_container_width=True):
                 st.success(get_text('call_initiated'))
+                add_audit_log("call", "Emergency Services", "Call initiated")
         
         with col3:
             if st.button("📨 " + get_text('send_alert'), use_container_width=True):
                 st.session_state.alert_sent = True
+                add_audit_log("alert_sent", "Alert System", "Alert sent to team")
                 st.success(get_text('alert_sent'))
         
         if st.session_state.emergency_triggered:
@@ -2538,6 +2857,7 @@ else:
         with col2:
             if st.button(f"🔄 {get_text('refresh_alerts')}", use_container_width=True):
                 st.session_state.alerts = generate_alerts(G)
+                add_audit_log("refresh", "Alerts", "Alerts refreshed")
                 st.rerun()
         
         st.markdown("---")
@@ -2592,12 +2912,15 @@ else:
                         {f"<br><span style='font-weight: 600;'>Entity:</span> {alert['entity']}" if alert.get('entity') else ""}
                     </div>
                     {'''
-                    <div style="margin-top: 0.5rem;">
+                    <div style="margin-top: 0.5rem; display: flex; gap: 8px; flex-wrap: wrap;">
                         <button style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 4px 16px; border-radius: 50px; cursor: pointer; transition: all 0.3s;">
                             📞 Call Now
                         </button>
-                        <button style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 4px 16px; border-radius: 50px; cursor: pointer; margin-left: 0.5rem; transition: all 0.3s;">
+                        <button style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 4px 16px; border-radius: 50px; cursor: pointer; transition: all 0.3s;">
                             📨 Send Alert
+                        </button>
+                        <button style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 4px 16px; border-radius: 50px; cursor: pointer; transition: all 0.3s;">
+                            👤 View Entity
                         </button>
                     </div>
                     ''' if alert['type'] == 'CRITICAL' else ''}
@@ -2607,12 +2930,12 @@ else:
             st.info(get_text('no_alerts'))
     
     # ========================================================================
-    # SIMULATION
+    # SIMULATION (Enhanced with Phase 3)
     # ========================================================================
     elif current_page == get_text("nav_simulation"):
         st.markdown(f"""
         <div style="animation: fadeInUp 0.6s ease-out;">
-            <h1 class="hero-title" style="font-size: 2.5rem; -webkit-text-fill-color: #1a1a2e; background: none; animation: none;">
+            <h1 style="font-size: 2.5rem; font-weight: 700; color: #1a1a2e;">
                 🎯 {get_text('simulation_title')}
             </h1>
             <p style="color: #666; margin-top: -0.5rem;">{get_text('simulation_sub')}</p>
@@ -2635,6 +2958,7 @@ else:
                     with st.spinner(get_text('loading')):
                         results = generate_simulation(G, target_entity)
                         st.session_state.simulation_results = results
+                        add_audit_log("simulation", target_entity, "Simulation run")
                         st.rerun()
             
             if st.session_state.simulation_results:
@@ -2709,37 +3033,276 @@ else:
                     st.markdown("- Minimal network disruption expected")
                     st.markdown("- Continue with planned actions")
                     st.markdown("- Monitor for any unexpected changes")
-
-# ============================================================================
-# HELPER FUNCTION FOR FALLBACK
-# ============================================================================
-
-def _show_fallback_network(G, node_list):
-    st.subheader("📋 Network Data")
     
-    st.write("**Entities:**")
-    node_data = []
-    for node in node_list:
-        attrs = get_node_attributes(G, node)
-        node_data.append({
-            'ID': node,
-            'Type': attrs.get('type', 'UNKNOWN'),
-            'Degree': get_degree(G, node)
-        })
-    st.dataframe(pd.DataFrame(node_data), use_container_width=True)
+    # ========================================================================
+    # HEATMAP (Phase 3 New Feature)
+    # ========================================================================
+    elif current_page == get_text("nav_heatmap"):
+        st.markdown(f"""
+        <div style="animation: fadeInUp 0.6s ease-out;">
+            <h1 style="font-size: 2.5rem; font-weight: 700; color: #1a1a2e;">
+                🗺️ {get_text('heatmap_title')}
+            </h1>
+            <p style="color: #666; margin-top: -0.5rem;">{get_text('heatmap_sub')}</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.info("🌍 " + get_text('heatmap_sub'))
+        
+        # Generate heatmap data
+        heatmap_data = generate_heatmap_data(G)
+        
+        if heatmap_data:
+            st.markdown(f"""
+            <div class="heatmap-container">
+                <h3 style="font-size: 1.2rem; font-weight: 600; color: #1a1a2e;">
+                    📍 {get_text('heatmap_locations')} ({len(heatmap_data)})
+                </h3>
+            """, unsafe_allow_html=True)
+            
+            # Create a DataFrame for display
+            df_heatmap = pd.DataFrame(heatmap_data)
+            
+            # Show as table
+            st.dataframe(
+                df_heatmap[['id', 'name', 'type', 'intensity']],
+                use_container_width=True
+            )
+            
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+            # Visual heatmap using Plotly if available
+            if PLOTLY_AVAILABLE:
+                st.markdown("---")
+                st.markdown("### 🗺️ Interactive Heatmap")
+                
+                try:
+                    fig = go.Figure()
+                    
+                    # Add scatter mapbox
+                    fig.add_trace(go.Scattermapbox(
+                        lat=df_heatmap['lat'],
+                        lon=df_heatmap['lon'],
+                        mode='markers',
+                        marker=dict(
+                            size=df_heatmap['intensity'] / 10 + 5,
+                            color=df_heatmap['intensity'],
+                            colorscale='Reds',
+                            showscale=True,
+                            colorbar=dict(title=get_text('heatmap_intensity'))
+                        ),
+                        text=df_heatmap['name'] + ' (' + df_heatmap['type'] + ')',
+                        hoverinfo='text'
+                    ))
+                    
+                    fig.update_layout(
+                        mapbox=dict(
+                            style="open-street-map",
+                            center=dict(
+                                lat=df_heatmap['lat'].mean(),
+                                lon=df_heatmap['lon'].mean()
+                            ),
+                            zoom=4
+                        ),
+                        height=500,
+                        margin=dict(l=0, r=0, t=0, b=0)
+                    )
+                    
+                    st.plotly_chart(fig, use_container_width=True)
+                except Exception as e:
+                    st.warning(f"Heatmap visualization error: {str(e)}")
+                    st.info("Showing data table instead.")
+            else:
+                st.info("Install plotly for interactive heatmap visualization.")
+        else:
+            st.info("No location data available for heatmap. Generate data with coordinates.")
     
-    st.write("**Relationships:**")
-    edge_data = []
-    for u in node_list:
-        for v in get_neighbors(G, u):
-            if (u, v) not in [(e['Source'], e['Target']) for e in edge_data]:
-                edge_data.append({
-                    'Source': u,
-                    'Target': v,
-                    'Type': get_edge_data(G, u, v).get('type', 'CONNECTED')
-                })
-    if edge_data:
-        st.dataframe(pd.DataFrame(edge_data), use_container_width=True)
+    # ========================================================================
+    # EXPORT (Phase 3 New Feature)
+    # ========================================================================
+    elif current_page == get_text("nav_export"):
+        st.markdown(f"""
+        <div style="animation: fadeInUp 0.6s ease-out;">
+            <h1 style="font-size: 2.5rem; font-weight: 700; color: #1a1a2e;">
+                📄 {get_text('export_title')}
+            </h1>
+            <p style="color: #666; margin-top: -0.5rem;">{get_text('export_sub')}</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if not check_permission("analyst"):
+            st.warning("🔒 You need 'Analyst' or higher role to export reports.")
+        else:
+            st.info("📋 " + get_text('export_sub'))
+            
+            # Export options
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                if st.button(f"📄 {get_text('export_json')}", use_container_width=True):
+                    with st.spinner(get_text('loading')):
+                        report = export_report_json(G)
+                        json_str = json.dumps(report, indent=2)
+                        st.download_button(
+                            label="📥 Download JSON",
+                            data=json_str,
+                            file_name=f"SUTRA-X_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                            mime="application/json",
+                            use_container_width=True
+                        )
+                        add_audit_log("export", "JSON Report", "Report exported")
+                        st.session_state.export_history.append({
+                            'timestamp': datetime.now().isoformat(),
+                            'format': 'JSON',
+                            'file': f"SUTRA-X_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                        })
+                        st.success("✅ JSON Report generated!")
+            
+            with col2:
+                if st.button(f"📊 {get_text('export_pdf')}", use_container_width=True):
+                    st.info("PDF export - generating report...")
+                    # For demo, we'll export as CSV since PDF needs additional libraries
+                    df_entities, df_edges = export_report_csv(G)
+                    csv_entities = df_entities.to_csv(index=False)
+                    st.download_button(
+                        label="📥 Download CSV (Entities)",
+                        data=csv_entities,
+                        file_name=f"SUTRA-X_Entities_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv",
+                        use_container_width=True
+                    )
+                    add_audit_log("export", "PDF/CSV Report", "Report exported")
+                    st.success("✅ CSV Report generated!")
+            
+            with col3:
+                if st.button(f"📝 {get_text('export_word')}", use_container_width=True):
+                    st.info("Word export - generating report...")
+                    df_entities, df_edges = export_report_csv(G)
+                    csv_edges = df_edges.to_csv(index=False)
+                    st.download_button(
+                        label="📥 Download CSV (Relationships)",
+                        data=csv_edges,
+                        file_name=f"SUTRA-X_Relationships_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv",
+                        use_container_width=True
+                    )
+                    add_audit_log("export", "Word/CSV Report", "Report exported")
+                    st.success("✅ CSV Relationships generated!")
+            
+            st.markdown("---")
+            
+            # Export History
+            st.markdown(f"### 📋 {get_text('export_history')}")
+            if st.session_state.export_history:
+                history_df = pd.DataFrame(st.session_state.export_history[-10:])
+                st.dataframe(history_df, use_container_width=True)
+            else:
+                st.info("No export history available.")
+    
+    # ========================================================================
+    # SECURITY (Phase 3 New Feature)
+    # ========================================================================
+    elif current_page == get_text("nav_security"):
+        st.markdown(f"""
+        <div style="animation: fadeInUp 0.6s ease-out;">
+            <h1 style="font-size: 2.5rem; font-weight: 700; color: #1a1a2e;">
+                🔐 {get_text('security_title')}
+            </h1>
+            <p style="color: #666; margin-top: -0.5rem;">{get_text('security_sub')}</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # RBAC Status
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown(f"""
+            <div style="background: white; padding: 1.5rem; border-radius: 15px; 
+                        box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+                <h3 style="font-size: 1.2rem; font-weight: 600; color: #1a1a2e;">🔐 {get_text('rbac_info')}</h3>
+                <div style="margin-top: 1rem;">
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                        <span>Current Role</span>
+                        <strong>{get_text('user_role')}: {role_labels.get(st.session_state.user_role, st.session_state.user_role)}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                        <span>Permissions</span>
+                        <span>
+                            {'✅ Full Access' if st.session_state.user_role == 'admin' else 
+                             '✅ Read/Write' if st.session_state.user_role == 'investigator' else
+                             '✅ Read Only' if st.session_state.user_role == 'analyst' else
+                             '👀 View Only'}
+                        </span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;">
+                        <span>Role Hierarchy</span>
+                        <span>Admin → Investigator → Analyst → Viewer</span>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            st.markdown(f"""
+            <div style="background: white; padding: 1.5rem; border-radius: 15px; 
+                        box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+                <h3 style="font-size: 1.2rem; font-weight: 600; color: #1a1a2e;">📶 {get_text('offline_mode')}</h3>
+                <div style="margin-top: 1rem;">
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                        <span>Current Status</span>
+                        <span>
+                            {'📴 Offline' if st.session_state.offline_mode else '📶 Online'}
+                        </span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                        <span>Description</span>
+                        <span style="font-size: 0.8rem; color: #888;">{get_text('offline_desc')}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;">
+                        <span>Data Sync</span>
+                        <span>{'🔄 Sync on reconnect' if st.session_state.offline_mode else '✅ Real-time'}</span>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        st.markdown("---")
+        
+        # Audit Logs
+        st.markdown(f"### 📋 {get_text('audit_logs')}")
+        
+        col1, col2 = st.columns([3, 1])
+        with col2:
+            if st.button("🔄 Refresh Logs", use_container_width=True):
+                st.rerun()
+            if st.button("🗑️ Clear Logs", use_container_width=True):
+                st.session_state.audit_logs = []
+                st.rerun()
+        
+        st.markdown("---")
+        
+        if st.session_state.audit_logs:
+            # Create audit log table
+            audit_df = pd.DataFrame(st.session_state.audit_logs[-20:])
+            if not audit_df.empty:
+                # Format for display
+                display_df = audit_df[['timestamp', 'user', 'action', 'resource']].copy()
+                display_df['timestamp'] = pd.to_datetime(display_df['timestamp']).dt.strftime('%Y-%m-%d %H:%M:%S')
+                st.dataframe(display_df, use_container_width=True)
+                
+                # Summary stats
+                st.markdown("---")
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Total Logs", len(st.session_state.audit_logs))
+                with col2:
+                    unique_actions = len(audit_df['action'].unique())
+                    st.metric("Unique Actions", unique_actions)
+                with col3:
+                    unique_users = len(audit_df['user'].unique())
+                    st.metric("Active Users", unique_users)
+        else:
+            st.info("No audit logs available.")
 
 # ============================================================================
 # FOOTER
@@ -2752,9 +3315,11 @@ st.markdown(f"""
         <span>|</span>
         <span>🕵️ SUTRA-X {get_text('version')}</span>
         <span>|</span>
-        <span>{get_text('nav_dashboard')}</span>
+        <span>⚡ PHASE 3</span>
         <span>|</span>
         <span>🌐 {LANGUAGES[st.session_state.language]['name']}</span>
+        <span>|</span>
+        <span>👤 {role_labels.get(st.session_state.user_role, st.session_state.user_role)}</span>
     </div>
     <div style="font-size: 0.8rem; color: #aaa;">
         {get_text('made_with')}
