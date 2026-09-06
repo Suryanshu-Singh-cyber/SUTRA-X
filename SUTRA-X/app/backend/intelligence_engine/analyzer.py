@@ -3,7 +3,14 @@ Network Analysis
 """
 
 from datetime import datetime
-from app.backend.graph_engine.graph_builder import get_node_list, get_node_attributes, get_degree
+import sys
+from pathlib import Path
+
+# Add project root to path
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+from backend.graph_engine.graph_builder import get_node_list, get_node_attributes, get_degree, get_neighbors
 
 def analyze_network(G):
     if G is None:
