@@ -21,6 +21,7 @@ from app.frontend.streamlit.components.sidebar import render_sidebar
 from app.backend.data.sample_data import generate_sample_network
 from app.backend.graph_engine.graph_builder import get_node_list
 from app.backend.intelligence_engine.analyzer import analyze_network, generate_alerts
+from app.backend.security.audit import add_audit_log
 
 # Page config
 st.set_page_config(
@@ -31,7 +32,7 @@ st.set_page_config(
 )
 
 # ============================================================================
-# SESSION STATE
+# SESSION STATE - FIXED
 # ============================================================================
 
 if 'data_loaded' not in st.session_state:
@@ -66,6 +67,8 @@ if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
 if 'current_user' not in st.session_state:
     st.session_state.current_user = None
+if 'ai_query' not in st.session_state:
+    st.session_state.ai_query = ""
 
 # ============================================================================
 # CUSTOM CSS - FIXED UI
@@ -105,8 +108,14 @@ st.markdown("""
         from { opacity: 0; transform: translateX(-30px); }
         to { opacity: 1; transform: translateX(0); }
     }
+    @keyframes bounceIn {
+        0% { transform: scale(0.3); opacity: 0; }
+        50% { transform: scale(1.05); }
+        70% { transform: scale(0.9); }
+        100% { transform: scale(1); opacity: 1; }
+    }
     
-    /* ===== HERO SECTION WITH BACKGROUND ===== */
+    /* ===== HERO SECTION ===== */
     .hero-section {
         background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
         padding: 3rem 4rem;
@@ -115,7 +124,7 @@ st.markdown("""
         position: relative;
         overflow: hidden;
         border: 1px solid rgba(102, 126, 234, 0.2);
-        min-height: 300px;
+        min-height: 280px;
         display: flex;
         align-items: center;
     }
@@ -215,7 +224,7 @@ st.markdown("""
         border: 1px solid rgba(255,255,255,0.1);
     }
     
-    /* ===== METRIC CARDS - FIXED TEXT COLOR ===== */
+    /* ===== METRIC CARDS ===== */
     .metric-card {
         background: white;
         padding: 1.5rem;
@@ -354,6 +363,15 @@ st.markdown("""
     .quick-stats .stat-label { color: #666; }
     .quick-stats .stat-value { font-weight: 700; color: #1a1a2e; }
     
+    /* ===== RAG RESPONSE ===== */
+    .rag-response {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 12px;
+        border-left: 4px solid #667eea;
+        margin: 0.5rem 0;
+    }
+    
     /* ===== FOOTER ===== */
     .footer {
         text-align: center;
@@ -362,15 +380,6 @@ st.markdown("""
         font-size: 0.85rem;
         border-top: 1px solid #eee;
         margin-top: 2rem;
-    }
-    
-    /* ===== RAG RESPONSE ===== */
-    .rag-response {
-        background: #f8f9fa;
-        padding: 1.5rem;
-        border-radius: 12px;
-        border-left: 4px solid #667eea;
-        margin: 0.5rem 0;
     }
     
     /* ===== BUTTONS ===== */
