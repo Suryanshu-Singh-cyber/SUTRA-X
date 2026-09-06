@@ -124,4 +124,38 @@ def render():
         "🔄 Network analysis completed - 3 new patterns found",
         "🔗 Cross-case link discovered between CASE-001 and CASE-002",
         "🚨 Priority lead updated for Entity P-0012",
-       
+        "📊 Evidence correlation detected in financial records",
+        "🔍 New entity added to the network"
+    ]
+    
+    for activity in activities:
+        st.markdown(f"<div style='padding: 0.3rem 0; animation: slideInLeft 0.5s ease-out;'>{activity}</div>", unsafe_allow_html=True)
+    
+    # ===== NETWORK STATS =====
+    st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### 📈 Network Statistics")
+        if metrics:
+            stats_data = {
+                'Metric': ['Total Nodes', 'Total Edges', 'Node Types'],
+                'Value': [
+                    metrics.get('total_nodes', 0),
+                    metrics.get('total_edges', 0),
+                    ', '.join([f"{k}: {v}" for k, v in metrics.get('node_types', {}).items()])
+                ]
+            }
+            st.table(pd.DataFrame(stats_data))
+    
+    with col2:
+        st.markdown("### 🔗 Quick Insights")
+        insights = [
+            f"🔹 {metrics['total_nodes'] if metrics else 0} entities in the network",
+            f"🔹 {metrics['total_edges'] if metrics else 0} relationships detected",
+            f"🔹 {len([e for e in (metrics['priority_entities'] if metrics else []) if e['degree'] >= 4])} high priority leads",
+            f"🔹 {cross_case} cross-case connections found"
+        ]
+        for insight in insights:
+            st.markdown(f"<div style='padding: 0.3rem 0;'>{insight}</div>", unsafe_allow_html=True)
