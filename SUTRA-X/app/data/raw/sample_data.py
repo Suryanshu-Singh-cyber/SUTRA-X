@@ -3,13 +3,24 @@ Sample Data Generator
 """
 
 import random
-import networkx as nx
-from datetime import datetime, timedelta
+import sys
+from pathlib import Path
+
+# Try to import networkx
+try:
+    import networkx as nx
+    NETWORKX_AVAILABLE = True
+except ImportError:
+    NETWORKX_AVAILABLE = False
 
 def generate_sample_network():
     """Generate sample criminal network with Indian data"""
     
-    G = nx.Graph()
+    if NETWORKX_AVAILABLE:
+        G = nx.Graph()
+    else:
+        # Simple fallback graph
+        G = SimpleGraph()
     
     first_names = ['Raj', 'Amit', 'Priya', 'Suresh', 'Anita', 'Vikram', 'Neha', 'Rahul', 
                    'Sunita', 'Mohan', 'Geeta', 'Arjun', 'Kavita', 'Deepak', 'Anjali', 
@@ -125,3 +136,54 @@ def generate_sample_network():
             G.add_edge(src, tgt, type='HIDDEN_CONNECTION', confidence=0.7, hidden=True)
     
     return G
+
+# Simple fallback graph if networkx is not available
+class SimpleGraph:
+    def __init__(self):
+        self._nodes = {}
+        self._adj = {}
+        self._edges = {}
+    
+    def add_node(self, node, **attrs):
+        self._nodes[node] = attrs
+        if node not in self._adj:
+            self._adj[node] = {}
+    
+    def add_edge(self, u, v, **attrs):
+        if u not in self._adj:
+            self._adj[u] = {}
+        if v not in self._adj:
+            self._adj[v] = {}
+        self._adj[u][v] = attrs
+        self._adj[v][u] = attrs
+        self._edges[(u, v)] = attrs
+    
+    def neighbors(self, node):
+        return list(self._adj.get(node, {}).keys())
+    
+    def degree(self, node):
+        return len(self._adj.get(node, {}))
+    
+    @property
+    def nodes(self):
+        return self._nodes
+    
+    @property
+    def edges(self):
+        return self._edges
+    
+    def number_of_nodes(self):
+        return len(self._nodes)
+    
+    def number_of_edges(self):
+        return len(self._edges)
+    
+    def has_edge(self, u, v):
+        return (u, v) in self._edges or (v, u) in self._edges
+    
+    def get_edge_data(self, u, v):
+        if (u, v) in self._edges:
+            return self._edges[(u, v)]
+        if (v, u) in self._edges:
+            return self._edges[(v, u)]
+        return {}
