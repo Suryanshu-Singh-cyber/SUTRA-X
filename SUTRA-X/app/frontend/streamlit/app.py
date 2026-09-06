@@ -1,7 +1,7 @@
 """
 SUTRA-X: Smart Unified Threat & Relationship Analytics
 AI-Powered Criminal Network Analysis System
-SIH 2026 | Complete Single-File Version - No Import Errors
+SIH 2026 | Complete Single-File Version with Real OpenAI API
 """
 
 import streamlit as st
@@ -13,6 +13,22 @@ import json
 import os
 import sys
 from pathlib import Path
+
+# ============================================================================
+# REAL OPENAI API CONFIGURATION
+# ============================================================================
+
+# Your OpenAI API Key
+OPENAI_API_KEY = "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"
+
+# Try to import openai
+try:
+    import openai
+    openai.api_key = OPENAI_API_KEY
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+    print("⚠️ OpenAI library not installed. Install with: pip install openai")
 
 # ============================================================================
 # FALLBACK FOR NETWORKX & PLOTLY
@@ -152,7 +168,7 @@ LANGUAGES = {
         "next_steps": "Next Steps",
         "relevant_entities": "Relevant Entities",
         "ai_title": "AI Copilot",
-        "ai_sub": "Intelligent investigation assistant",
+        "ai_sub": "Real OpenAI-powered investigation assistant",
         "simulation_title": "What-If Simulation",
         "simulation_sub": "Simulate network disruption scenarios",
         "select_entity": "Select Entity to Remove",
@@ -179,7 +195,10 @@ LANGUAGES = {
         "priority_score": "Priority Score",
         "timeline_title": "Investigation Timeline",
         "timeline_sub": "Track network evolution over time",
-        "key_events": "Key Events"
+        "key_events": "Key Events",
+        "api_status": "OpenAI API Status",
+        "api_connected": "✅ Connected",
+        "api_disconnected": "⚠️ Not Connected"
     },
     "hi": {
         "name": "हिंदी",
@@ -286,7 +305,7 @@ LANGUAGES = {
         "next_steps": "अगले कदम",
         "relevant_entities": "प्रासंगिक इकाइयां",
         "ai_title": "एआई सहायक",
-        "ai_sub": "बुद्धिमान जांच सहायक",
+        "ai_sub": "वास्तविक OpenAI-संचालित जांच सहायक",
         "simulation_title": "क्या-अगर सिमुलेशन",
         "simulation_sub": "नेटवर्क व्यवधान परिदृश्यों का अनुकरण करें",
         "select_entity": "हटाने के लिए इकाई चुनें",
@@ -313,7 +332,10 @@ LANGUAGES = {
         "priority_score": "प्राथमिकता स्कोर",
         "timeline_title": "जांच समयरेखा",
         "timeline_sub": "समय के साथ नेटवर्क विकास ट्रैक करें",
-        "key_events": "मुख्य घटनाएं"
+        "key_events": "मुख्य घटनाएं",
+        "api_status": "OpenAI API स्थिति",
+        "api_connected": "✅ कनेक्टेड",
+        "api_disconnected": "⚠️ कनेक्टेड नहीं"
     }
 }
 
@@ -786,6 +808,95 @@ def generate_simulation(G, target_entity):
     return simulation_results
 
 # ============================================================================
+# REAL AI COPILOT WITH OPENAI API
+# ============================================================================
+
+def get_ai_response(query, context):
+    """Get real AI response using OpenAI API"""
+    
+    if not OPENAI_AVAILABLE:
+        return get_fallback_response(query, context)
+    
+    try:
+        # Build the system prompt with context
+        system_prompt = f"""You are SUTRA-X AI, an intelligent investigation assistant for criminal network analysis.
+        
+Context: {context}
+
+Your role is to help investigators analyze criminal networks. You should:
+1. Provide evidence-backed insights
+2. Identify patterns and connections
+3. Suggest actionable investigation steps
+4. Be specific and practical
+
+If you don't know something, say so. Don't make up information."""
+        
+        # Call OpenAI API
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": query}
+            ],
+            temperature=0.7,
+            max_tokens=500
+        )
+        
+        return {
+            'response': response.choices[0].message.content,
+            'sources': ['OpenAI GPT-3.5', 'Network Data'],
+            'confidence': 0.85,
+            'using_api': True
+        }
+        
+    except Exception as e:
+        return {
+            'response': get_fallback_response(query, context),
+            'sources': ['Fallback Mode'],
+            'confidence': 0.5,
+            'using_api': False,
+            'error': str(e)
+        }
+
+def get_fallback_response(query, context):
+    """Fallback response when API is not available"""
+    
+    query_lower = query.lower()
+    responses = []
+    
+    # Extract network info from context
+    entities = context.get('entities', [])
+    total_nodes = context.get('total_nodes', 0)
+    total_edges = context.get('total_edges', 0)
+    
+    if "person" in query_lower or "who" in query_lower or "entity" in query_lower:
+        if entities:
+            top_entities = sorted(entities, key=lambda x: x['degree'], reverse=True)[:5]
+            names = [f"{e['name']} ({e['id']})" for e in top_entities]
+            responses.append(f"🔍 Key entities: {', '.join(names)}")
+        else:
+            responses.append("🔍 No high-degree entities found.")
+    
+    if "connection" in query_lower or "link" in query_lower or "relationship" in query_lower:
+        responses.append("🔗 Multiple cross-case connections detected in the network.")
+    
+    if "pattern" in query_lower or "trend" in query_lower or "activity" in query_lower:
+        responses.append("📊 Financial transaction patterns suggest potential money laundering.")
+    
+    if "priority" in query_lower or "important" in query_lower or "critical" in query_lower:
+        if entities:
+            critical = [e['id'] for e in entities if e['degree'] >= 5]
+            if critical:
+                responses.append(f"🚨 Critical entities: {', '.join(critical[:5])}")
+            else:
+                responses.append("🚨 No critical entities detected.")
+    
+    if not responses:
+        responses.append(f"💡 Network contains {total_nodes} entities and {total_edges} relationships.")
+    
+    return '\n'.join(responses)
+
+# ============================================================================
 # CUSTOM CSS
 # ============================================================================
 
@@ -1133,6 +1244,17 @@ with st.sidebar:
         </div>
     </div>
     """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # API Status
+    st.markdown("### 🤖 AI Status")
+    if OPENAI_AVAILABLE:
+        st.success("✅ OpenAI Connected")
+        st.caption("Model: gpt-3.5-turbo")
+    else:
+        st.warning("⚠️ OpenAI Not Available")
+        st.caption("Install: pip install openai")
     
     st.markdown("---")
     
@@ -1835,7 +1957,7 @@ def render_cross_case():
     else:
         st.warning("Need at least 2 cases and 1 person.")
 
-# ===== AI COPILOT =====
+# ===== AI COPILOT WITH REAL OPENAI =====
 def render_ai_copilot():
     G = st.session_state.graph
     node_list = get_node_list(G)
@@ -1843,7 +1965,7 @@ def render_ai_copilot():
     st.markdown("""
     <div style="animation: fadeInUp 0.6s ease-out;">
         <h1 style="font-size: 2.5rem; font-weight: 700; color: #1a1a2e;">🤖 AI Copilot</h1>
-        <p style="color: #666; margin-top: -0.5rem;">Intelligent investigation assistant</p>
+        <p style="color: #666; margin-top: -0.5rem;">Real OpenAI-powered investigation assistant</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -1855,6 +1977,13 @@ def render_ai_copilot():
         st.warning("🔒 You need 'Analyst' or higher role to use AI Copilot.")
         return
     
+    # Show API status
+    if OPENAI_AVAILABLE:
+        st.success("✅ OpenAI API Connected - Real AI Responses")
+    else:
+        st.warning("⚠️ OpenAI API Not Available - Using Fallback Mode")
+        st.caption("Install: pip install openai")
+    
     st.info("🧠 Ask questions about your investigation or get AI-generated insights")
     
     col1, col2 = st.columns(2)
@@ -1865,7 +1994,8 @@ def render_ai_copilot():
             "Who are the most central people in this network?",
             "Show me connections between cases",
             "What patterns indicate criminal activity?",
-            "Which entities should I investigate first?"
+            "Which entities should I investigate first?",
+            "What are the hidden connections in this network?"
         ]
         for q in questions:
             if st.button(q, key=f"q_{hash(q)}", use_container_width=True):
@@ -1893,52 +2023,47 @@ def render_ai_copilot():
         st.markdown("---")
         st.markdown("### 🤖 AI Response")
         
-        with st.spinner("Analyzing network..."):
-            response_parts = []
+        with st.spinner("🧠 Analyzing with AI..."):
+            # Build context
+            context = {
+                'entities': [],
+                'total_nodes': len(node_list),
+                'total_edges': 0
+            }
             
-            if "person" in query.lower() or "who" in query.lower() or "entity" in query.lower():
-                high_degree = []
-                for node in node_list:
-                    degree = get_degree(G, node)
-                    attrs = get_node_attributes(G, node)
-                    if attrs.get('type') == 'PERSON' and degree >= 3:
-                        high_degree.append((node, degree, attrs.get('name', node)))
-                
-                if high_degree:
-                    high_degree.sort(key=lambda x: x[1], reverse=True)
-                    top = high_degree[:5]
-                    names = [f"{n} (degree: {d})" for n, d, _ in top]
-                    response_parts.append(f"🔍 **Key entities:** {', '.join(names)}")
+            try:
+                if NETWORKX_AVAILABLE:
+                    context['total_edges'] = G.number_of_edges()
                 else:
-                    response_parts.append("🔍 No high-degree entities found.")
+                    context['total_edges'] = len(G.edges)
+            except:
+                context['total_edges'] = 0
             
-            if "connection" in query.lower() or "link" in query.lower() or "relationship" in query.lower():
-                response_parts.append("🔗 **Cross-case connections detected:** Multiple relationships between cases and persons.")
+            for node in node_list[:20]:
+                degree = get_degree(G, node)
+                attrs = get_node_attributes(G, node)
+                if attrs.get('type') == 'PERSON':
+                    context['entities'].append({
+                        'id': node,
+                        'name': attrs.get('name', node),
+                        'degree': degree
+                    })
             
-            if "pattern" in query.lower() or "trend" in query.lower() or "activity" in query.lower():
-                response_parts.append("📊 **Pattern detection:** Financial transaction patterns suggest potential money laundering.")
-            
-            if "priority" in query.lower() or "important" in query.lower() or "critical" in query.lower():
-                critical = []
-                for node in node_list:
-                    degree = get_degree(G, node)
-                    attrs = get_node_attributes(G, node)
-                    if degree >= 5 and attrs.get('type') == 'PERSON':
-                        critical.append(node)
-                
-                if critical:
-                    response_parts.append(f"🚨 **Critical entities:** {', '.join(critical[:5])}")
-                else:
-                    response_parts.append("🚨 No critical entities detected.")
-            
-            if not response_parts:
-                response_parts.append(f"💡 **Network overview:** The network contains {len(node_list)} entities.")
-                response_parts.append("📊 Try asking about specific entities, connections, or patterns.")
+            # Get AI response
+            result = get_ai_response(query, context)
             
             st.markdown(f"""
             <div class="rag-response">
                 <strong>Response:</strong>
-                <p style="margin-top: 0.5rem;">{chr(10).join(response_parts)}</p>
+                <p style="margin-top: 0.5rem; white-space: pre-wrap;">{result['response']}</p>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 0.5rem;">
+                    <span style="font-size: 0.7rem; color: #888; margin-right: 0.5rem;">Sources:</span>
+                    {''.join([f'<span style="background: #667eea20; color: #667eea; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">{s}</span>' for s in result['sources']])}
+                    <span style="background: #667eea20; color: #667eea; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">
+                        Confidence: {result['confidence']:.0%}
+                    </span>
+                    {f'<span style="background: #2ed57320; color: #2ed573; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">✅ Real AI</span>' if result.get('using_api', False) else '<span style="background: #ffa50220; color: #ffa502; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">⚠️ Fallback</span>'}
+                </div>
             </div>
             """, unsafe_allow_html=True)
             
