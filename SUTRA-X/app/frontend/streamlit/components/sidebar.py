@@ -1,5 +1,5 @@
 """
-Sidebar Component
+Sidebar Component - FIXED with 7 Languages
 """
 
 import streamlit as st
@@ -9,7 +9,10 @@ from app.backend.intelligence_engine.analyzer import generate_alerts
 from app.backend.security.audit import add_audit_log
 from app.backend.security.rbac import authenticate_user
 
-# Languages
+# ============================================================================
+# 7 LANGUAGES SUPPORT - FIXED
+# ============================================================================
+
 LANGUAGES = {
     "en": {"name": "English", "flag": "🇬🇧"},
     "hi": {"name": "हिंदी", "flag": "🇮🇳"},
@@ -82,6 +85,16 @@ def render_sidebar():
                 st.session_state.current_user = None
                 st.session_state.user_role = 'viewer'
                 st.rerun()
+        
+        st.markdown("---")
+        
+        # ===== OFFLINE MODE =====
+        st.markdown("### 📶 Mode")
+        offline_toggle = st.toggle("Offline Mode", value=st.session_state.offline_mode)
+        if offline_toggle != st.session_state.offline_mode:
+            st.session_state.offline_mode = offline_toggle
+            add_audit_log("mode_change", "Offline Mode", f"Set to {offline_toggle}")
+            st.rerun()
         
         st.markdown("---")
         
