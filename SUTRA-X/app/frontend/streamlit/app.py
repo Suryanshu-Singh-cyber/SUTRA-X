@@ -6,22 +6,24 @@ SIH 2026
 
 import streamlit as st
 import sys
+import os
 from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
+sys.path.insert(0, str(project_root / "app" / "frontend" / "streamlit"))
 
 # Import pages
-from app.frontend.streamlit.pages import (
+from pages import (
     dashboard, network_graph, entity_profile, timeline, cross_case,
     ai_copilot, alerts, simulation, heatmap, export, security
 )
-from app.frontend.streamlit.components.sidebar import render_sidebar
-from app.backend.data.sample_data import generate_sample_network
-from app.backend.graph_engine.graph_builder import get_node_list
-from app.backend.intelligence_engine.analyzer import analyze_network, generate_alerts
-from app.backend.security.audit import add_audit_log
+from components.sidebar import render_sidebar
+from backend.data.sample_data import generate_sample_network
+from backend.graph_engine.graph_builder import get_node_list
+from backend.intelligence_engine.analyzer import analyze_network, generate_alerts
+from backend.security.audit import add_audit_log
 
 # Page config
 st.set_page_config(
@@ -32,7 +34,7 @@ st.set_page_config(
 )
 
 # ============================================================================
-# SESSION STATE - FIXED
+# SESSION STATE
 # ============================================================================
 
 if 'data_loaded' not in st.session_state:
@@ -107,12 +109,6 @@ st.markdown("""
     @keyframes slideInLeft {
         from { opacity: 0; transform: translateX(-30px); }
         to { opacity: 1; transform: translateX(0); }
-    }
-    @keyframes bounceIn {
-        0% { transform: scale(0.3); opacity: 0; }
-        50% { transform: scale(1.05); }
-        70% { transform: scale(0.9); }
-        100% { transform: scale(1); opacity: 1; }
     }
     
     /* ===== HERO SECTION ===== */
