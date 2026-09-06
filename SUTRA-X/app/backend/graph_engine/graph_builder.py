@@ -2,8 +2,6 @@
 Graph Builder Utilities
 """
 
-import networkx as nx
-
 def get_node_list(G):
     try:
         return list(G.nodes())
