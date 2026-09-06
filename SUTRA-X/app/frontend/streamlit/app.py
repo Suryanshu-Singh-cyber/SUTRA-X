@@ -383,9 +383,7 @@ LANGUAGES = {
             "ai_query": "AI प्रश्न",
             "heatmap_view": "हीटमैप देखा"
         }
-    },
-    # Continue with other languages (ta, te, bn, ml, ur) - abbreviated for space
-    # Full versions available upon request
+    }
 }
 
 # Initialize missing languages with English fallback
@@ -441,6 +439,8 @@ if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
 if 'current_user' not in st.session_state:
     st.session_state.current_user = None
+if 'language' not in st.session_state:
+    st.session_state.language = "en"
 
 # ============================================================================
 # REAL RBAC SYSTEM (Working)
@@ -508,8 +508,7 @@ def add_audit_log(action, resource, details=""):
         'details': details,
         'ip': '127.0.0.1'
     }
-    st.session_state.audit_logs.insert(0, log_entry)  # Newest first
-    # Keep only last 100 logs
+    st.session_state.audit_logs.insert(0, log_entry)
     if len(st.session_state.audit_logs) > 100:
         st.session_state.audit_logs = st.session_state.audit_logs[:100]
 
@@ -1108,14 +1107,12 @@ def generate_real_heatmap(G):
     if not FOLIUM_AVAILABLE:
         return None
     
-    # Create base map centered on India
     m = folium.Map(
         location=[20.5937, 78.9629],
         zoom_start=4,
         tiles='OpenStreetMap'
     )
     
-    # Collect location data
     heat_data = []
     markers_data = []
     
@@ -1138,7 +1135,6 @@ def generate_real_heatmap(G):
                 'intensity': intensity
             })
     
-    # Add heatmap layer if there's data
     if heat_data:
         plugins.HeatMap(
             heat_data,
@@ -1154,7 +1150,6 @@ def generate_real_heatmap(G):
             }
         ).add_to(m)
     
-    # Add markers
     for data in markers_data:
         color = 'red' if data['intensity'] > 70 else 'orange' if data['intensity'] > 40 else 'green'
         folium.CircleMarker(
@@ -1167,7 +1162,6 @@ def generate_real_heatmap(G):
             fillOpacity=0.6
         ).add_to(m)
     
-    # Add sample locations if no data
     if not heat_data:
         sample_locations = [
             {'name': 'Mumbai', 'lat': 19.0760, 'lon': 72.8777, 'intensity': 85},
@@ -1402,7 +1396,7 @@ st.markdown("""
         font-weight: 600;
         display: inline-block;
     }
-    .status-high { background: #ff6b6b; color: white; }
+    .status-high { background: #ff6b6b; color: white; animation: pulse 1.5s infinite; }
     .status-medium { background: #feca57; color: #333; }
     .status-low { background: #48dbfb; color: #333; }
     
@@ -1660,73 +1654,71 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================================================
-# MAIN CONTENT
+# MAIN CONTENT FUNCTION
 # ============================================================================
 
-if not st.session_state.data_loaded or st.session_state.graph is None:
-    # Landing Page
-    st.markdown("""
-    <div style="text-align: center; padding: 3rem 1rem; animation: fadeInUp 1s ease-out;">
-        <div style="font-size: 4rem; margin-bottom: 1rem; animation: float 3s ease-in-out infinite;">🕵️</div>
-        <h2 style="font-size: 2rem; font-weight: 700; color: #1a1a2e;">Welcome to SUTRA-X Phase 3</h2>
-        <p style="color: #666; font-size: 1.1rem; max-width: 600px; margin: 0 auto;">
-            AI-powered criminal network analysis platform with Real RAG, Real Heatmap, Real RBAC
-        </p>
-        <div style="margin-top: 2rem; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-            <span style="background: linear-gradient(135deg, #ff6b6b, #ee5a24); color: white; padding: 8px 20px; border-radius: 50px; font-weight: 600;">🤖 Real RAG</span>
-            <span style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 8px 20px; border-radius: 50px; font-weight: 600;">🗺️ Real Heatmap</span>
-            <span style="background: linear-gradient(135deg, #f093fb, #f5576c); color: white; padding: 8px 20px; border-radius: 50px; font-weight: 600;">🔐 Real RBAC</span>
-            <span style="background: linear-gradient(135deg, #2ed573, #26de81); color: white; padding: 8px 20px; border-radius: 50px; font-weight: 600;">📄 Real Export</span>
-        </div>
-        <div style="margin-top: 2rem; color: #888;">
-            👈 Click "Generate Sample Data" in the sidebar to get started
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+def main():
+    """Main application router"""
     
-    # Feature Cards
-    st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
+    if not st.session_state.data_loaded or st.session_state.graph is None:
+        # Landing Page
         st.markdown("""
-        <div class="glow-card" style="text-align: center;">
-            <div style="font-size: 3rem; animation: float 4s ease-in-out infinite;">🤖</div>
-            <h3>Real RAG AI Copilot</h3>
-            <p style="color: #666;">OpenAI-powered investigation assistant with real API integration</p>
+        <div style="text-align: center; padding: 3rem 1rem; animation: fadeInUp 1s ease-out;">
+            <div style="font-size: 4rem; margin-bottom: 1rem; animation: float 3s ease-in-out infinite;">🕵️</div>
+            <h2 style="font-size: 2rem; font-weight: 700; color: #1a1a2e;">Welcome to SUTRA-X Phase 3</h2>
+            <p style="color: #666; font-size: 1.1rem; max-width: 600px; margin: 0 auto;">
+                AI-powered criminal network analysis platform with Real RAG, Real Heatmap, Real RBAC
+            </p>
+            <div style="margin-top: 2rem; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                <span style="background: linear-gradient(135deg, #ff6b6b, #ee5a24); color: white; padding: 8px 20px; border-radius: 50px; font-weight: 600;">🤖 Real RAG</span>
+                <span style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 8px 20px; border-radius: 50px; font-weight: 600;">🗺️ Real Heatmap</span>
+                <span style="background: linear-gradient(135deg, #f093fb, #f5576c); color: white; padding: 8px 20px; border-radius: 50px; font-weight: 600;">🔐 Real RBAC</span>
+                <span style="background: linear-gradient(135deg, #2ed573, #26de81); color: white; padding: 8px 20px; border-radius: 50px; font-weight: 600;">📄 Real Export</span>
+            </div>
+            <div style="margin-top: 2rem; color: #888;">
+                👈 Click "Generate Sample Data" in the sidebar to get started
+            </div>
         </div>
         """, unsafe_allow_html=True)
+        
+        # Feature Cards
+        st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.markdown("""
+            <div class="glow-card" style="text-align: center;">
+                <div style="font-size: 3rem; animation: float 4s ease-in-out infinite;">🤖</div>
+                <h3>Real RAG AI Copilot</h3>
+                <p style="color: #666;">OpenAI-powered investigation assistant with real API integration</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            st.markdown("""
+            <div class="glow-card" style="text-align: center;">
+                <div style="font-size: 3rem; animation: float 4s ease-in-out infinite 0.5s;">🗺️</div>
+                <h3>Real Heatmap</h3>
+                <p style="color: #666;">Interactive Folium heatmap with real location data</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col3:
+            st.markdown("""
+            <div class="glow-card" style="text-align: center;">
+                <div style="font-size: 3rem; animation: float 4s ease-in-out infinite 1s;">🔐</div>
+                <h3>Real RBAC & Audit</h3>
+                <p style="color: #666;">Working authentication with role-based permissions and audit logs</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        return
     
-    with col2:
-        st.markdown("""
-        <div class="glow-card" style="text-align: center;">
-            <div style="font-size: 3rem; animation: float 4s ease-in-out infinite 0.5s;">🗺️</div>
-            <h3>Real Heatmap</h3>
-            <p style="color: #666;">Interactive Folium heatmap with real location data</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col3:
-        st.markdown("""
-        <div class="glow-card" style="text-align: center;">
-            <div style="font-size: 3rem; animation: float 4s ease-in-out infinite 1s;">🔐</div>
-            <h3>Real RBAC & Audit</h3>
-            <p style="color: #666;">Working authentication with role-based permissions and audit logs</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-else:
+    # Main content with data loaded
     G = st.session_state.graph
     node_list = get_node_list(G)
     metrics = analyze_network(G)
     current_page = st.session_state.current_page
-    
-    # Check authentication for protected features
-    def check_auth():
-        if not st.session_state.authenticated:
-            st.warning("🔒 Please login to access this feature.")
-            return False
-        return True
     
     # ========================================================================
     # DASHBOARD
@@ -2030,7 +2022,6 @@ else:
                         
                         st.markdown("---")
                         
-                        # Evidence
                         st.markdown(f"""
                         <div style="background: white; padding: 1.5rem; border-radius: 15px; 
                                     box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
@@ -2219,7 +2210,6 @@ else:
         if not has_permission("use_ai"):
             st.warning("🔒 You need 'Analyst' or higher role to use AI Copilot.")
         else:
-            # Check API Status
             api_key = os.getenv("OPENAI_API_KEY", "")
             if api_key:
                 st.success(f"✅ {get_text('api_connected')}")
@@ -2228,7 +2218,6 @@ else:
                 st.warning(f"⚠️ {get_text('api_disconnected')}")
                 st.info("💡 Set OPENAI_API_KEY in .env file for full AI capabilities.")
             
-            # Initialize RAG Engine
             rag = RealRAGEngine(G)
             
             st.info("🧠 " + get_text('ai_sub'))
@@ -2323,8 +2312,6 @@ else:
         </div>
         """, unsafe_allow_html=True)
         
-        # Emergency Call Button
-        st.markdown("---")
         col1, col2, col3 = st.columns([1, 1, 1])
         
         with col1:
@@ -2366,7 +2353,6 @@ else:
         
         st.markdown("---")
         
-        # Refresh Alerts
         col1, col2 = st.columns([3, 1])
         with col2:
             if st.button(f"🔄 {get_text('refresh_alerts')}", use_container_width=True):
@@ -2376,7 +2362,6 @@ else:
         
         st.markdown("---")
         
-        # Display Alerts
         alerts = st.session_state.alerts
         
         if alerts:
@@ -2439,10 +2424,9 @@ else:
         </div>
         """, unsafe_allow_html=True)
         
-        if not check_auth():
-            return
-        
-        if not node_list:
+        if not st.session_state.authenticated:
+            st.warning("🔒 Please login to access this feature.")
+        elif not node_list:
             st.warning(get_text('no_data'))
         else:
             col1, col2 = st.columns([2, 1])
@@ -2547,7 +2531,6 @@ else:
             st.warning("⚠️ Folium not installed. Install with: pip install folium streamlit-folium")
             st.info("Showing data table instead.")
             
-            # Show data table
             heatmap_data = []
             for node in node_list:
                 attrs = get_node_attributes(G, node)
@@ -2572,31 +2555,51 @@ else:
         
         st.info("🌍 Interactive heatmap with real location data")
         
-        # Generate real heatmap
         with st.spinner("🔄 Generating heatmap..."):
             m = generate_real_heatmap(G)
         
         if m:
-            # Display the heatmap
-            from streamlit_folium import folium_static
-            folium_static(m, width=1000, height=600)
-            
-            add_audit_log("heatmap_view", "Heatmap", "Viewed geographic heatmap")
-            
-            st.markdown("---")
-            
-            # Legend
-            st.markdown("""
-            <div style="background: white; padding: 1rem; border-radius: 12px; 
-                        box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-                <h4 style="margin: 0 0 0.5rem 0;">📊 Legend</h4>
-                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-                    <div><span style="display: inline-block; width: 20px; height: 20px; background: red; border-radius: 50%;"></span> High Intensity (70-100)</div>
-                    <div><span style="display: inline-block; width: 20px; height: 20px; background: orange; border-radius: 50%;"></span> Medium Intensity (40-70)</div>
-                    <div><span style="display: inline-block; width: 20px; height: 20px; background: green; border-radius: 50%;"></span> Low Intensity (0-40)</div>
+            try:
+                from streamlit_folium import folium_static
+                folium_static(m, width=1000, height=600)
+                
+                add_audit_log("heatmap_view", "Heatmap", "Viewed geographic heatmap")
+                
+                st.markdown("---")
+                
+                st.markdown("""
+                <div style="background: white; padding: 1rem; border-radius: 12px; 
+                            box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                    <h4 style="margin: 0 0 0.5rem 0;">📊 Legend</h4>
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                        <div><span style="display: inline-block; width: 20px; height: 20px; background: red; border-radius: 50%;"></span> High Intensity (70-100)</div>
+                        <div><span style="display: inline-block; width: 20px; height: 20px; background: orange; border-radius: 50%;"></span> Medium Intensity (40-70)</div>
+                        <div><span style="display: inline-block; width: 20px; height: 20px; background: green; border-radius: 50%;"></span> Low Intensity (0-40)</div>
+                    </div>
                 </div>
-            </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+            except ImportError:
+                st.warning("⚠️ streamlit-folium not installed. Install with: pip install streamlit-folium")
+                st.info("Showing data table instead.")
+                
+                heatmap_data = []
+                for node in node_list:
+                    attrs = get_node_attributes(G, node)
+                    if attrs.get('type') in ['PERSON', 'LOCATION']:
+                        lat = attrs.get('latitude')
+                        lon = attrs.get('longitude')
+                        if lat and lon:
+                            heatmap_data.append({
+                                'ID': node,
+                                'Name': attrs.get('name', attrs.get('number', node)),
+                                'Type': attrs.get('type'),
+                                'Latitude': float(lat),
+                                'Longitude': float(lon),
+                                'Intensity': min(100, get_degree(G, node) * 10 + 10)
+                            })
+                
+                if heatmap_data:
+                    st.dataframe(pd.DataFrame(heatmap_data), use_container_width=True)
         else:
             st.warning("Could not generate heatmap. Please check data.")
     
@@ -2611,10 +2614,9 @@ else:
         </div>
         """, unsafe_allow_html=True)
         
-        if not check_auth():
-            return
-        
-        if not has_permission("export_data"):
+        if not st.session_state.authenticated:
+            st.warning("🔒 Please login to access this feature.")
+        elif not has_permission("export_data"):
             st.warning("🔒 You need 'Analyst' or higher role to export reports.")
         else:
             st.info("📋 " + get_text('export_sub'))
@@ -2689,98 +2691,96 @@ else:
         </div>
         """, unsafe_allow_html=True)
         
-        if not check_auth():
-            return
-        
-        # RBAC Status
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown(f"""
-            <div style="background: white; padding: 1.5rem; border-radius: 15px; 
-                        box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
-                <h3 style="font-size: 1.2rem; font-weight: 600; color: #1a1a2e;">🔐 {get_text('rbac_info')}</h3>
-                <div style="margin-top: 1rem;">
-                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
-                        <span>Current User</span>
-                        <strong>{st.session_state.current_user}</strong>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
-                        <span>Current Role</span>
-                        <strong>{st.session_state.user_role.upper()}</strong>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
-                        <span>Permissions</span>
-                        <span>
-                            {', '.join(ROLE_PERMISSIONS.get(st.session_state.user_role, []))}
-                        </span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;">
-                        <span>Role Hierarchy</span>
-                        <span>Admin → Investigator → Analyst → Viewer</span>
-                    </div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            st.markdown(f"""
-            <div style="background: white; padding: 1.5rem; border-radius: 15px; 
-                        box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
-                <h3 style="font-size: 1.2rem; font-weight: 600; color: #1a1a2e;">📶 {get_text('offline_mode')}</h3>
-                <div style="margin-top: 1rem;">
-                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
-                        <span>Current Status</span>
-                        <span>
-                            {'📴 Offline' if st.session_state.offline_mode else '📶 Online'}
-                        </span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
-                        <span>Description</span>
-                        <span style="font-size: 0.8rem; color: #888;">{get_text('offline_desc')}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;">
-                        <span>Data Sync</span>
-                        <span>{'🔄 Sync on reconnect' if st.session_state.offline_mode else '✅ Real-time'}</span>
-                    </div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        st.markdown("---")
-        
-        # Audit Logs
-        st.markdown(f"### 📋 {get_text('audit_logs')}")
-        
-        col1, col2 = st.columns([3, 1])
-        with col2:
-            if st.button("🔄 Refresh Logs", use_container_width=True):
-                st.rerun()
-            if st.button("🗑️ Clear Logs", use_container_width=True):
-                st.session_state.audit_logs = []
-                st.rerun()
-        
-        st.markdown("---")
-        
-        if st.session_state.audit_logs:
-            audit_df = pd.DataFrame(st.session_state.audit_logs[:20])
-            if not audit_df.empty:
-                display_df = audit_df[['timestamp', 'user', 'role', 'action', 'resource']].copy()
-                display_df['timestamp'] = pd.to_datetime(display_df['timestamp']).dt.strftime('%Y-%m-%d %H:%M:%S')
-                st.dataframe(display_df, use_container_width=True)
-                
-                st.markdown("---")
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("Total Logs", len(st.session_state.audit_logs))
-                with col2:
-                    unique_actions = len(audit_df['action'].unique())
-                    st.metric("Unique Actions", unique_actions)
-                with col3:
-                    unique_users = len(audit_df['user'].unique())
-                    st.metric("Active Users", unique_users)
+        if not st.session_state.authenticated:
+            st.warning("🔒 Please login to access this feature.")
         else:
-            st.info("No audit logs available.")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown(f"""
+                <div style="background: white; padding: 1.5rem; border-radius: 15px; 
+                            box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+                    <h3 style="font-size: 1.2rem; font-weight: 600; color: #1a1a2e;">🔐 {get_text('rbac_info')}</h3>
+                    <div style="margin-top: 1rem;">
+                        <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                            <span>Current User</span>
+                            <strong>{st.session_state.current_user}</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                            <span>Current Role</span>
+                            <strong>{st.session_state.user_role.upper()}</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                            <span>Permissions</span>
+                            <span>
+                                {', '.join(ROLE_PERMISSIONS.get(st.session_state.user_role, []))}
+                            </span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;">
+                            <span>Role Hierarchy</span>
+                            <span>Admin → Investigator → Analyst → Viewer</span>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col2:
+                st.markdown(f"""
+                <div style="background: white; padding: 1.5rem; border-radius: 15px; 
+                            box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+                    <h3 style="font-size: 1.2rem; font-weight: 600; color: #1a1a2e;">📶 {get_text('offline_mode')}</h3>
+                    <div style="margin-top: 1rem;">
+                        <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                            <span>Current Status</span>
+                            <span>
+                                {'📴 Offline' if st.session_state.offline_mode else '📶 Online'}
+                            </span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                            <span>Description</span>
+                            <span style="font-size: 0.8rem; color: #888;">{get_text('offline_desc')}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;">
+                            <span>Data Sync</span>
+                            <span>{'🔄 Sync on reconnect' if st.session_state.offline_mode else '✅ Real-time'}</span>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            st.markdown("---")
+            
+            st.markdown(f"### 📋 {get_text('audit_logs')}")
+            
+            col1, col2 = st.columns([3, 1])
+            with col2:
+                if st.button("🔄 Refresh Logs", use_container_width=True):
+                    st.rerun()
+                if st.button("🗑️ Clear Logs", use_container_width=True):
+                    st.session_state.audit_logs = []
+                    st.rerun()
+            
+            st.markdown("---")
+            
+            if st.session_state.audit_logs:
+                audit_df = pd.DataFrame(st.session_state.audit_logs[:20])
+                if not audit_df.empty:
+                    display_df = audit_df[['timestamp', 'user', 'role', 'action', 'resource']].copy()
+                    display_df['timestamp'] = pd.to_datetime(display_df['timestamp']).dt.strftime('%Y-%m-%d %H:%M:%S')
+                    st.dataframe(display_df, use_container_width=True)
+                    
+                    st.markdown("---")
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Total Logs", len(st.session_state.audit_logs))
+                    with col2:
+                        unique_actions = len(audit_df['action'].unique())
+                        st.metric("Unique Actions", unique_actions)
+                    with col3:
+                        unique_users = len(audit_df['user'].unique())
+                        st.metric("Active Users", unique_users)
+            else:
+                st.info("No audit logs available.")
 
 # ============================================================================
 # FOOTER
@@ -2810,4 +2810,4 @@ st.markdown(f"""
 # ============================================================================
 
 if __name__ == "__main__":
-    pass
+    main()
