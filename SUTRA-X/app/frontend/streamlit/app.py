@@ -1,8 +1,7 @@
 """
 SUTRA-X: Smart Unified Threat & Relationship Analytics
 AI-Powered Criminal Network Analysis System
-SIH 2026
-Complete Single-File Version - No Import Errors
+SIH 2026 | Complete Single-File Version - No Import Errors
 """
 
 import streamlit as st
@@ -1685,16 +1684,16 @@ def render_entity_profile():
         
         degree = len(details['connections'])
         if degree >= 5:
-            st.warning("🔴 " + get_text('immediate_action'))
+            st.warning("🔴 Immediate investigation required")
             st.markdown("- Assign to senior investigator")
             st.markdown("- Conduct surveillance")
             st.markdown("- Coordinate with other cases")
         elif degree >= 3:
-            st.info("🟡 " + get_text('review_required'))
+            st.info("🟡 Schedule within 48 hours")
             st.markdown("- Gather additional evidence")
             st.markdown("- Interview connected persons")
         else:
-            st.success("🟢 " + get_text('information_only'))
+            st.success("🟢 Low priority")
             st.markdown("- Monitor for new connections")
             st.markdown("- Document findings")
         
