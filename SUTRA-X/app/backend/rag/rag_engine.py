@@ -4,240 +4,176 @@ Real RAG Engine with OpenAI API Integration
 
 import os
 import json
-from typing import List, Dict, Any, Optional
+from typing import Dict, List, Any, Optional
 from datetime import datetime
-import openai
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.vectorstores import Chroma
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.chains import RetrievalQA
-from langchain.llms import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
 
-class RAGEngine:
+class RealRAGEngine:
     """Real RAG Engine with OpenAI API"""
     
     def __init__(self, graph=None):
         self.graph = graph
-        self.vector_store = None
-        self.qa_chain = None
-        self.context = []
-        self.sources = []
+        self.context = ""
+        self.api_key = os.getenv("OPENAI_API_KEY", "")
+        self.is_available = bool(self.api_key)
         
-        # Initialize OpenAI
-        self.api_key = os.getenv("OPENAI_API_KEY")
-        self.model = os.getenv("OPENAI_MODEL", "gpt-4-turbo-preview")
-        
-        if self.api_key:
-            openai.api_key = self.api_key
-            self.llm = OpenAI(
-                temperature=0.7,
-                model=self.model,
-                openai_api_key=self.api_key
-            )
-            self.embeddings = OpenAIEmbeddings(
-                openai_api_key=self.api_key
-            )
-        else:
-            print("⚠️ OpenAI API key not found. RAG will use fallback mode.")
-            self.llm = None
-            self.embeddings = None
-        
-        if graph:
-            self._build_index()
-    
-    def _build_index(self):
-        """Build vector store index from graph data"""
-        if not self.graph:
-            return
-        
-        # Extract data from graph
-        documents = self._extract_documents()
-        
-        if not documents:
-            return
-        
-        # Split documents
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200,
-            separators=["\n\n", "\n", ". ", " ", ""]
-        )
-        texts = text_splitter.split_text("\n\n".join(documents))
-        
-        # Build vector store
-        if self.embeddings and texts:
+        # Try to initialize OpenAI
+        if self.is_available:
             try:
-                self.vector_store = Chroma.from_texts(
-                    texts,
-                    self.embeddings,
-                    collection_name="sutra_x_rag"
-                )
-                
-                # Create QA chain
-                if self.llm:
-                    self.qa_chain = RetrievalQA.from_chain_type(
-                        llm=self.llm,
-                        chain_type="stuff",
-                        retriever=self.vector_store.as_retriever(
-                            search_kwargs={"k": 5}
-                        )
-                    )
+                import openai
+                openai.api_key = self.api_key
+                self.openai = openai
+                self.model = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
+            except ImportError:
+                self.is_available = False
+                print("⚠️ OpenAI library not installed")
             except Exception as e:
-                print(f"⚠️ Error building vector store: {e}")
-                self.vector_store = None
-                self.qa_chain = None
+                self.is_available = False
+                print(f"⚠️ OpenAI initialization error: {e}")
+        
+        self._build_context()
     
-    def _extract_documents(self) -> List[str]:
-        """Extract documents from graph for RAG"""
-        documents = []
-        
+    def _build_context(self):
+        """Build RAG context from graph data"""
         if not self.graph:
-            return documents
+            self.context = "No graph data available."
+            return
         
-        node_list = list(self.graph.nodes)
+        from app.backend.graph_engine.graph_builder import (
+            get_node_list, get_node_attributes, get_degree
+        )
         
-        # Network overview
+        node_list = get_node_list(self.graph)
         total_nodes = len(node_list)
+        
         try:
             total_edges = self.graph.number_of_edges()
         except:
             total_edges = len(self.graph.edges)
         
-        documents.append(f"""
-        CRIMINAL NETWORK OVERVIEW
-        Total entities: {total_nodes}
-        Total relationships: {total_edges}
-        """)
+        context_parts = [
+            f"Network contains {total_nodes} entities and {total_edges} relationships."
+        ]
         
-        # Entity details
-        for node in node_list[:20]:  # Limit to 20 for performance
-            attrs = dict(self.graph.nodes[node])
+        # Entity types
+        node_types = {}
+        for node in node_list:
+            attrs = get_node_attributes(self.graph, node)
             node_type = attrs.get('type', 'UNKNOWN')
-            degree = len(list(self.graph.neighbors(node)))
-            
-            doc = f"""
-            ENTITY: {node}
-            Type: {node_type}
-            Connections: {degree}
-            Properties: {json.dumps(attrs, indent=2)}
-            """
-            documents.append(doc)
+            node_types[node_type] = node_types.get(node_type, 0) + 1
         
-        # Relationship details
-        relationships = []
-        for u in node_list[:20]:
-            for v in list(self.graph.neighbors(u)):
-                if (u, v) not in relationships:
-                    relationships.append((u, v))
-                    edge_data = self.graph.get_edge_data(u, v) or {}
-                    doc = f"""
-                    RELATIONSHIP: {u} -> {v}
-                    Type: {edge_data.get('type', 'CONNECTED')}
-                    Properties: {json.dumps(edge_data, indent=2)}
-                    """
-                    documents.append(doc)
+        context_parts.append(f"Entity distribution: {', '.join([f'{k}: {v}' for k, v in node_types.items()])}")
         
-        return documents
+        # Priority entities
+        priority_entities = []
+        for node in node_list:
+            degree = get_degree(self.graph, node)
+            attrs = get_node_attributes(self.graph, node)
+            if attrs.get('type') == 'PERSON' and degree >= 3:
+                priority_entities.append(f"{node} (degree: {degree})")
+        
+        if priority_entities:
+            context_parts.append(f"High-priority entities: {', '.join(priority_entities[:5])}")
+        
+        # Cases
+        case_nodes = [n for n in node_list if get_node_attributes(self.graph, n).get('type') == 'CASE']
+        if case_nodes:
+            cases_str = ", ".join([f"{n} ({get_node_attributes(self.graph, n).get('title', n)})" for n in case_nodes[:5]])
+            context_parts.append(f"Active cases: {cases_str}")
+        
+        self.context = "\n".join(context_parts)
     
     def query(self, question: str) -> Dict[str, Any]:
-        """Query the RAG system with a question"""
+        """Query with real OpenAI API if available"""
         
         # Try real RAG if available
-        if self.qa_chain and self.llm:
+        if self.is_available:
             try:
-                result = self.qa_chain({"query": question})
-                response = result.get('result', '')
-                sources = ["RAG Retrieval", "Network Analysis"]
-                confidence = 0.85
+                response = self.openai.ChatCompletion.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "system", "content": f"""You are an AI investigation assistant for criminal network analysis. 
+                        Context: {self.context}
+                        Answer questions based on this network data. Be specific and actionable.
+                        If you don't know something, say so. Don't make up information."""},
+                        {"role": "user", "content": question}
+                    ],
+                    temperature=0.7,
+                    max_tokens=500
+                )
+                return {
+                    'response': response.choices[0].message.content,
+                    'sources': ['OpenAI GPT-3.5', 'Network Data'],
+                    'confidence': 0.85,
+                    'context': self.context
+                }
             except Exception as e:
-                print(f"⚠️ RAG error: {e}")
-                response = self._fallback_response(question)
-                sources = ["Fallback Mode"]
-                confidence = 0.5
-        else:
-            # Fallback response
-            response = self._fallback_response(question)
-            sources = ["Fallback Mode (No API Key)"]
-            confidence = 0.4
+                return self._fallback_response(question, f"API Error: {str(e)}")
         
-        return {
-            'response': response,
-            'sources': sources,
-            'confidence': confidence,
-            'context': self.context
-        }
+        return self._fallback_response(question, "OpenAI API key not configured")
     
-    def _fallback_response(self, question: str) -> str:
+    def _fallback_response(self, question: str, reason: str = "") -> Dict:
         """Fallback response when API is not available"""
+        
+        from app.backend.graph_engine.graph_builder import (
+            get_node_list, get_node_attributes, get_degree
+        )
         
         question_lower = question.lower()
         responses = []
         
-        # Check for entity questions
-        if any(word in question_lower for word in ['person', 'entity', 'who', 'individual']):
+        # Entity questions
+        if any(w in question_lower for w in ['person', 'entity', 'who']):
             if self.graph:
-                node_list = list(self.graph.nodes)
+                node_list = get_node_list(self.graph)
                 high_degree = []
                 for node in node_list:
-                    degree = len(list(self.graph.neighbors(node)))
-                    if degree >= 3:
-                        attrs = dict(self.graph.nodes[node])
-                        if attrs.get('type') == 'PERSON':
-                            high_degree.append((node, degree, attrs.get('name', node)))
+                    degree = get_degree(self.graph, node)
+                    attrs = get_node_attributes(self.graph, node)
+                    if attrs.get('type') == 'PERSON' and degree >= 3:
+                        high_degree.append((node, degree, attrs.get('name', node)))
                 
                 if high_degree:
                     high_degree.sort(key=lambda x: x[1], reverse=True)
                     top = high_degree[:5]
                     names = [f"{n} (degree: {d})" for n, d, _ in top]
-                    responses.append(f"🔍 Key entities: {', '.join(names)}")
+                    responses.append(f"Key entities: {', '.join(names)}")
                 else:
-                    responses.append("🔍 No high-degree entities found in the network.")
+                    responses.append("No high-degree entities found.")
         
-        # Check for connection questions
-        if any(word in question_lower for word in ['connection', 'link', 'relationship', 'connect']):
-            responses.append("🔗 Multiple cross-case connections detected in the network.")
-            responses.append("💡 Review the Network Graph for visual relationships.")
+        # Connection questions
+        if any(w in question_lower for w in ['connection', 'link', 'relationship']):
+            responses.append("Multiple cross-case connections detected in the network.")
         
-        # Check for pattern questions
-        if any(word in question_lower for word in ['pattern', 'trend', 'activity', 'anomaly']):
-            responses.append("📊 Financial transaction patterns suggest potential money laundering.")
-            responses.append("📈 Communication patterns indicate coordinated activity.")
+        # Pattern questions
+        if any(w in question_lower for w in ['pattern', 'trend', 'activity']):
+            responses.append("Financial transaction patterns suggest potential money laundering.")
         
-        # Check for priority questions
-        if any(word in question_lower for word in ['priority', 'important', 'critical', 'urgent']):
+        # Priority questions
+        if any(w in question_lower for w in ['priority', 'important', 'critical']):
             if self.graph:
-                node_list = list(self.graph.nodes)
+                node_list = get_node_list(self.graph)
                 critical = []
                 for node in node_list:
-                    degree = len(list(self.graph.neighbors(node)))
-                    if degree >= 5:
-                        attrs = dict(self.graph.nodes[node])
-                        if attrs.get('type') == 'PERSON':
-                            critical.append(node)
+                    degree = get_degree(self.graph, node)
+                    attrs = get_node_attributes(self.graph, node)
+                    if degree >= 5 and attrs.get('type') == 'PERSON':
+                        critical.append(node)
                 
                 if critical:
-                    responses.append(f"🚨 Critical entities: {', '.join(critical[:5])}")
-                else:
-                    responses.append("🚨 No critical entities detected.")
+                    responses.append(f"Critical entities: {', '.join(critical[:5])}")
         
-        # Default response
+        # Default
         if not responses:
-            responses.append("💡 I'm analyzing the network. Please ask a specific question about entities, connections, or patterns.")
-            if self.graph:
-                total_nodes = len(list(self.graph.nodes))
-                try:
-                    total_edges = self.graph.number_of_edges()
-                except:
-                    total_edges = len(self.graph.edges)
-                responses.append(f"📊 Network has {total_nodes} entities and {total_edges} relationships.")
+            responses.append(f"Network contains {len(get_node_list(self.graph)) if self.graph else 0} entities.")
+            if reason:
+                responses.append(f"Note: {reason}")
         
-        return "\n\n".join(responses)
-    
-    def get_context(self) -> str:
-        """Get the current context for the RAG system"""
-        if self.vector_store:
-            return "Vector store with graph data is available."
-        return "No context available. Please generate data first."
+        return {
+            'response': '\n'.join(responses),
+            'sources': ['Fallback Mode', 'Network Analysis'],
+            'confidence': 0.5,
+            'context': self.context
+        }
