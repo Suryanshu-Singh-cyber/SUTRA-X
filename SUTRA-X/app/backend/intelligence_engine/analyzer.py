@@ -1,8 +1,8 @@
-
 """
 Network Analysis
 """
 
+from datetime import datetime
 from app.backend.graph_engine.graph_builder import get_node_list, get_node_attributes, get_degree
 
 def analyze_network(G):
@@ -65,6 +65,34 @@ def generate_alerts(G):
                 'timestamp': datetime.now().isoformat(),
                 'action': 'Immediate investigation required',
                 'emergency': True
+            })
+        elif degree >= 4 and attrs.get('type') == 'PERSON':
+            alerts.append({
+                'id': f"ALERT-{len(alerts)+1:04d}",
+                'type': 'WARNING',
+                'title': f'High Priority Entity: {node}',
+                'description': f'Entity {node} has {degree} connections',
+                'entity': node,
+                'timestamp': datetime.now().isoformat(),
+                'action': 'Review connections for patterns',
+                'emergency': False
+            })
+    
+    # Cross-case alerts
+    case_nodes = [n for n in node_list if get_node_attributes(G, n).get('type') == 'CASE']
+    for case in case_nodes:
+        neighbors = get_neighbors(G, case)
+        person_neighbors = [n for n in neighbors if get_node_attributes(G, n).get('type') == 'PERSON']
+        if len(person_neighbors) >= 4:
+            alerts.append({
+                'id': f"ALERT-{len(alerts)+1:04d}",
+                'type': 'INFO',
+                'title': f'Cross-Case: {case}',
+                'description': f'Case {case} connected to {len(person_neighbors)} persons',
+                'entity': case,
+                'timestamp': datetime.now().isoformat(),
+                'action': 'Investigate cross-case connections',
+                'emergency': False
             })
     
     return alerts[:10]
