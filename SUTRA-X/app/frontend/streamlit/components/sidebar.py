@@ -3,11 +3,18 @@ Sidebar Component - FIXED with 7 Languages
 """
 
 import streamlit as st
-from app.backend.data.sample_data import generate_sample_network
-from app.backend.graph_engine.graph_builder import get_node_list
-from app.backend.intelligence_engine.analyzer import generate_alerts
-from app.backend.security.audit import add_audit_log
-from app.backend.security.rbac import authenticate_user
+import sys
+from pathlib import Path
+
+# Add project root to path
+project_root = Path(__file__).parent.parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+from backend.data.sample_data import generate_sample_network
+from backend.graph_engine.graph_builder import get_node_list
+from backend.intelligence_engine.analyzer import generate_alerts
+from backend.security.audit import add_audit_log
+from backend.security.rbac import authenticate_user
 
 # ============================================================================
 # 7 LANGUAGES SUPPORT - FIXED
