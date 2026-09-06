@@ -1,7 +1,7 @@
 """
 SUTRA-X: Smart Unified Threat & Relationship Analytics
 AI-Powered Criminal Network Analysis System
-SIH 2026 | Complete Single-File Version with Real OpenAI API
+SIH 2026 | Complete Working Version with Real OpenAI
 """
 
 import streamlit as st
@@ -18,7 +18,6 @@ from pathlib import Path
 # REAL OPENAI API CONFIGURATION
 # ============================================================================
 
-# Your OpenAI API Key
 OPENAI_API_KEY = "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"
 
 # Try to import openai
@@ -808,20 +807,32 @@ def generate_simulation(G, target_entity):
     return simulation_results
 
 # ============================================================================
-# REAL AI COPILOT WITH OPENAI API
+# REAL AI COPILOT WITH OPENAI API - FIXED
 # ============================================================================
 
 def get_ai_response(query, context):
-    """Get real AI response using OpenAI API"""
+    """Get real AI response using OpenAI API - FIXED"""
     
+    # If OpenAI is not available, use fallback
     if not OPENAI_AVAILABLE:
-        return get_fallback_response(query, context)
+        return {
+            'response': get_fallback_response(query, context),
+            'sources': ['Fallback Mode'],
+            'confidence': 0.5,
+            'using_api': False
+        }
     
     try:
         # Build the system prompt with context
-        system_prompt = f"""You are SUTRA-X AI, an intelligent investigation assistant for criminal network analysis.
+        context_str = f"""
+Network contains {context.get('total_nodes', 0)} entities and {context.get('total_edges', 0)} relationships.
+Entity types: {context.get('entity_types', 'Not specified')}
+High priority entities: {context.get('priority_entities', 'None')}
+"""
         
-Context: {context}
+        system_prompt = f"""You are SUTRA-X AI, an intelligent investigation assistant for criminal network analysis.
+
+Context: {context_str}
 
 Your role is to help investigators analyze criminal networks. You should:
 1. Provide evidence-backed insights
@@ -831,19 +842,35 @@ Your role is to help investigators analyze criminal networks. You should:
 
 If you don't know something, say so. Don't make up information."""
         
-        # Call OpenAI API
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": query}
-            ],
-            temperature=0.7,
-            max_tokens=500
-        )
+        # Call OpenAI API - Using the correct method for newer versions
+        try:
+            # Try new API method (openai>=1.0.0)
+            client = openai.OpenAI(api_key=OPENAI_API_KEY)
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": query}
+                ],
+                temperature=0.7,
+                max_tokens=500
+            )
+            ai_response = response.choices[0].message.content
+        except AttributeError:
+            # Fallback to old API method (openai<1.0.0)
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": query}
+                ],
+                temperature=0.7,
+                max_tokens=500
+            )
+            ai_response = response.choices[0].message.content
         
         return {
-            'response': response.choices[0].message.content,
+            'response': ai_response,
             'sources': ['OpenAI GPT-3.5', 'Network Data'],
             'confidence': 0.85,
             'using_api': True
@@ -851,9 +878,9 @@ If you don't know something, say so. Don't make up information."""
         
     except Exception as e:
         return {
-            'response': get_fallback_response(query, context),
+            'response': get_fallback_response(query, context) + f"\n\n⚠️ API Error: {str(e)}",
             'sources': ['Fallback Mode'],
-            'confidence': 0.5,
+            'confidence': 0.4,
             'using_api': False,
             'error': str(e)
         }
@@ -865,14 +892,14 @@ def get_fallback_response(query, context):
     responses = []
     
     # Extract network info from context
-    entities = context.get('entities', [])
     total_nodes = context.get('total_nodes', 0)
     total_edges = context.get('total_edges', 0)
+    entities = context.get('entities', [])
     
     if "person" in query_lower or "who" in query_lower or "entity" in query_lower:
         if entities:
-            top_entities = sorted(entities, key=lambda x: x['degree'], reverse=True)[:5]
-            names = [f"{e['name']} ({e['id']})" for e in top_entities]
+            top_entities = sorted(entities, key=lambda x: x.get('degree', 0), reverse=True)[:5]
+            names = [f"{e.get('name', e.get('id', 'Unknown'))} (degree: {e.get('degree', 0)})" for e in top_entities]
             responses.append(f"🔍 Key entities: {', '.join(names)}")
         else:
             responses.append("🔍 No high-degree entities found.")
@@ -885,7 +912,7 @@ def get_fallback_response(query, context):
     
     if "priority" in query_lower or "important" in query_lower or "critical" in query_lower:
         if entities:
-            critical = [e['id'] for e in entities if e['degree'] >= 5]
+            critical = [e.get('id') for e in entities if e.get('degree', 0) >= 5]
             if critical:
                 responses.append(f"🚨 Critical entities: {', '.join(critical[:5])}")
             else:
@@ -893,11 +920,12 @@ def get_fallback_response(query, context):
     
     if not responses:
         responses.append(f"💡 Network contains {total_nodes} entities and {total_edges} relationships.")
+        responses.append("💡 Try asking about specific entities, connections, or patterns.")
     
     return '\n'.join(responses)
 
 # ============================================================================
-# CUSTOM CSS
+# CUSTOM CSS - FIXED TEXT COLORS
 # ============================================================================
 
 st.markdown("""
@@ -1044,7 +1072,7 @@ st.markdown("""
         border: 1px solid rgba(255,255,255,0.1);
     }
     
-    /* ===== METRIC CARDS ===== */
+    /* ===== METRIC CARDS - FIXED TEXT COLORS ===== */
     .metric-card {
         background: white;
         padding: 1.5rem;
@@ -1077,7 +1105,7 @@ st.markdown("""
     
     .metric-card .label {
         font-size: 0.9rem;
-        color: #666;
+        color: #4a4a4a;
         font-weight: 500;
     }
     
@@ -1090,8 +1118,8 @@ st.markdown("""
         display: inline-block;
     }
     .status-high { background: #ff6b6b; color: white; animation: pulse 1.5s infinite; }
-    .status-medium { background: #feca57; color: #333; }
-    .status-low { background: #48dbfb; color: #333; }
+    .status-medium { background: #feca57; color: #1a1a2e; }
+    .status-low { background: #48dbfb; color: #1a1a2e; }
     
     /* ===== ENTITY CARDS ===== */
     .entity-card {
@@ -1163,7 +1191,7 @@ st.markdown("""
     }
     .glow-card .icon { font-size: 3rem; margin-bottom: 0.5rem; }
     .glow-card h3 { color: #1a1a2e; font-size: 1.2rem; margin: 0.5rem 0; }
-    .glow-card p { color: #666; font-size: 0.9rem; }
+    .glow-card p { color: #4a4a4a; font-size: 0.9rem; }
     
     /* ===== QUICK STATS - FIXED DARK TEXT ===== */
     .quick-stats {
@@ -1180,7 +1208,7 @@ st.markdown("""
         color: #1a1a2e;
     }
     .quick-stats .stat-item:last-child { border-bottom: none; }
-    .quick-stats .stat-label { color: #666; }
+    .quick-stats .stat-label { color: #4a4a4a; }
     .quick-stats .stat-value { font-weight: 700; color: #1a1a2e; }
     
     /* ===== RAG RESPONSE ===== */
@@ -1191,12 +1219,15 @@ st.markdown("""
         border-left: 4px solid #667eea;
         margin: 0.5rem 0;
     }
+    .rag-response p {
+        color: #1a1a2e;
+    }
     
     /* ===== FOOTER ===== */
     .footer {
         text-align: center;
         padding: 1.5rem 0;
-        color: #888;
+        color: #4a4a4a;
         font-size: 0.85rem;
         border-top: 1px solid #eee;
         margin-top: 2rem;
@@ -1250,15 +1281,18 @@ with st.sidebar:
     # API Status
     st.markdown("### 🤖 AI Status")
     if OPENAI_AVAILABLE:
-        st.success("✅ OpenAI Connected")
-        st.caption("Model: gpt-3.5-turbo")
+        try:
+            st.success("✅ OpenAI Connected")
+            st.caption("Model: gpt-3.5-turbo")
+        except:
+            st.warning("⚠️ OpenAI Error")
     else:
         st.warning("⚠️ OpenAI Not Available")
         st.caption("Install: pip install openai")
     
     st.markdown("---")
     
-    # Language Selector - 7 Languages
+    # Language Selector
     st.markdown("### 🌐 Language")
     lang_options = {code: f"{data['flag']} {data['name']}" for code, data in LANGUAGES.items()}
     selected_lang = st.selectbox(
@@ -1424,10 +1458,9 @@ def display_fallback_network(G, node_list):
         st.dataframe(pd.DataFrame(edge_data), use_container_width=True)
 
 # ============================================================================
-# MAIN PAGES
+# DASHBOARD
 # ============================================================================
 
-# ===== DASHBOARD =====
 def render_dashboard():
     G = st.session_state.graph
     node_list = get_node_list(G)
@@ -1533,7 +1566,10 @@ def render_dashboard():
     else:
         st.info(get_text('no_priority'))
 
-# ===== NETWORK GRAPH (3D) =====
+# ============================================================================
+# NETWORK GRAPH (3D)
+# ============================================================================
+
 def render_network_graph():
     G = st.session_state.graph
     node_list = get_node_list(G)
@@ -1673,7 +1709,10 @@ def render_network_graph():
             st.session_state.current_page = "Entity Profile"
             st.rerun()
 
-# ===== ENTITY PROFILE =====
+# ============================================================================
+# ENTITY PROFILE
+# ============================================================================
+
 def render_entity_profile():
     G = st.session_state.graph
     node_list = get_node_list(G)
@@ -1821,7 +1860,10 @@ def render_entity_profile():
         
         st.markdown("</div>", unsafe_allow_html=True)
 
-# ===== TIMELINE =====
+# ============================================================================
+# TIMELINE
+# ============================================================================
+
 def render_timeline():
     st.markdown("""
     <div style="animation: fadeInUp 0.6s ease-out;">
@@ -1895,7 +1937,10 @@ def render_timeline():
         with col2:
             st.markdown(event['event'])
 
-# ===== CROSS-CASE =====
+# ============================================================================
+# CROSS-CASE
+# ============================================================================
+
 def render_cross_case():
     G = st.session_state.graph
     node_list = get_node_list(G)
@@ -1957,7 +2002,10 @@ def render_cross_case():
     else:
         st.warning("Need at least 2 cases and 1 person.")
 
-# ===== AI COPILOT WITH REAL OPENAI =====
+# ============================================================================
+# AI COPILOT WITH REAL OPENAI - FIXED
+# ============================================================================
+
 def render_ai_copilot():
     G = st.session_state.graph
     node_list = get_node_list(G)
@@ -2028,7 +2076,9 @@ def render_ai_copilot():
             context = {
                 'entities': [],
                 'total_nodes': len(node_list),
-                'total_edges': 0
+                'total_edges': 0,
+                'entity_types': {},
+                'priority_entities': []
             }
             
             try:
@@ -2039,19 +2089,26 @@ def render_ai_copilot():
             except:
                 context['total_edges'] = 0
             
-            for node in node_list[:20]:
+            # Build entity types
+            for node in node_list[:30]:
                 degree = get_degree(G, node)
                 attrs = get_node_attributes(G, node)
+                node_type = attrs.get('type', 'UNKNOWN')
+                context['entity_types'][node_type] = context['entity_types'].get(node_type, 0) + 1
+                
                 if attrs.get('type') == 'PERSON':
                     context['entities'].append({
                         'id': node,
                         'name': attrs.get('name', node),
                         'degree': degree
                     })
+                    if degree >= 3:
+                        context['priority_entities'].append(f"{node} (degree: {degree})")
             
-            # Get AI response
+            # Get AI response - FIXED
             result = get_ai_response(query, context)
             
+            # Display response - FIXED: result['response'] is now a string
             st.markdown(f"""
             <div class="rag-response">
                 <strong>Response:</strong>
@@ -2067,6 +2124,7 @@ def render_ai_copilot():
             </div>
             """, unsafe_allow_html=True)
             
+            # Show relevant entities
             st.markdown("### 📋 Relevant Entities")
             entities_with_degree = []
             for node in node_list:
@@ -2083,7 +2141,10 @@ def render_ai_copilot():
             
             st.session_state.ai_query = ""
 
-# ===== ALERTS =====
+# ============================================================================
+# ALERTS
+# ============================================================================
+
 def render_alerts():
     st.markdown("""
     <div style="animation: fadeInUp 0.6s ease-out;">
@@ -2195,7 +2256,10 @@ def render_alerts():
     else:
         st.info("No active alerts.")
 
-# ===== SIMULATION =====
+# ============================================================================
+# SIMULATION
+# ============================================================================
+
 def render_simulation():
     G = st.session_state.graph
     node_list = get_node_list(G)
@@ -2282,7 +2346,10 @@ def render_simulation():
         else:
             st.info("No affected entities detected.")
 
-# ===== HEATMAP =====
+# ============================================================================
+# HEATMAP
+# ============================================================================
+
 def render_heatmap():
     G = st.session_state.graph
     node_list = get_node_list(G)
@@ -2395,7 +2462,10 @@ def render_heatmap():
     else:
         st.info("Install plotly for interactive map visualization.")
 
-# ===== EXPORT =====
+# ============================================================================
+# EXPORT
+# ============================================================================
+
 def render_export():
     st.markdown("""
     <div style="animation: fadeInUp 0.6s ease-out;">
@@ -2485,7 +2555,10 @@ def render_export():
     else:
         st.info("No export history available.")
 
-# ===== SECURITY =====
+# ============================================================================
+# SECURITY
+# ============================================================================
+
 def render_security():
     st.markdown("""
     <div style="animation: fadeInUp 0.6s ease-out;">
@@ -2507,15 +2580,15 @@ def render_security():
             <div style="margin-top: 1rem;">
                 <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
                     <span>Current User</span>
-                    <strong>{st.session_state.current_user}</strong>
+                    <strong style="color: #1a1a2e;">{st.session_state.current_user}</strong>
                 </div>
                 <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
                     <span>Current Role</span>
-                    <strong>{st.session_state.user_role.upper()}</strong>
+                    <strong style="color: #1a1a2e;">{st.session_state.user_role.upper()}</strong>
                 </div>
                 <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;">
                     <span>Permissions</span>
-                    <span style="font-size: 0.85rem;">{', '.join(ROLE_PERMISSIONS.get(st.session_state.user_role, []))}</span>
+                    <span style="font-size: 0.85rem; color: #1a1a2e;">{', '.join(ROLE_PERMISSIONS.get(st.session_state.user_role, []))}</span>
                 </div>
             </div>
         </div>
@@ -2528,11 +2601,11 @@ def render_security():
             <div style="margin-top: 1rem;">
                 <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
                     <span>Status</span>
-                    <span>{'📴 Offline' if st.session_state.offline_mode else '📶 Online'}</span>
+                    <span style="color: #1a1a2e;">{'📴 Offline' if st.session_state.offline_mode else '📶 Online'}</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;">
                     <span>Description</span>
-                    <span style="font-size: 0.8rem; color: #888;">Work without internet, sync when online</span>
+                    <span style="font-size: 0.8rem; color: #4a4a4a;">{get_text('offline_desc')}</span>
                 </div>
             </div>
         </div>
