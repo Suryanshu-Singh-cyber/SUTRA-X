@@ -17,7 +17,7 @@ from backend.security.audit import add_audit_log
 from backend.security.rbac import authenticate_user
 
 # ============================================================================
-# 7 LANGUAGES SUPPORT - FIXED
+# 7 LANGUAGES SUPPORT
 # ============================================================================
 
 LANGUAGES = {
@@ -51,7 +51,7 @@ def render_sidebar():
         
         st.markdown("---")
         
-        # ===== LANGUAGE SELECTOR - 7 LANGUAGES =====
+        # Language Selector - 7 Languages
         st.markdown("### 🌐 Language")
         lang_options = {code: f"{data['flag']} {data['name']}" for code, data in LANGUAGES.items()}
         selected_lang = st.selectbox(
@@ -66,7 +66,7 @@ def render_sidebar():
         
         st.markdown("---")
         
-        # ===== AUTHENTICATION =====
+        # Authentication
         st.markdown("### 🔐 Security")
         
         if not st.session_state.authenticated:
@@ -95,7 +95,7 @@ def render_sidebar():
         
         st.markdown("---")
         
-        # ===== OFFLINE MODE =====
+        # Offline Mode
         st.markdown("### 📶 Mode")
         offline_toggle = st.toggle("Offline Mode", value=st.session_state.offline_mode)
         if offline_toggle != st.session_state.offline_mode:
@@ -105,7 +105,7 @@ def render_sidebar():
         
         st.markdown("---")
         
-        # ===== NAVIGATION =====
+        # Navigation
         st.markdown("### 📌 Navigation")
         nav_items = [
             ("Dashboard", "📊"),
@@ -127,7 +127,7 @@ def render_sidebar():
         
         st.markdown("---")
         
-        # ===== DATA CONTROLS =====
+        # Data Controls
         st.markdown("### 📊 Data")
         if st.button("🔄 Generate Sample Data", use_container_width=True):
             with st.spinner("Generating sample data..."):
@@ -142,8 +142,7 @@ def render_sidebar():
         
         st.markdown("---")
         
-        # ===== STATUS =====
-        st.markdown("### 📶 Status")
+        # Status
         if st.session_state.data_loaded:
             st.success(f"✅ Data Loaded")
             st.caption(f"Entities: {len(st.session_state.entity_list)}")
