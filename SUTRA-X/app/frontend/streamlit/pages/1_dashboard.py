@@ -1,11 +1,17 @@
 """
-Dashboard Page - 300+ lines
+Dashboard Page
 """
 
 import streamlit as st
-from app.backend.graph_engine.graph_builder import get_node_list, get_node_attributes, get_neighbors
-from app.backend.intelligence_engine.analyzer import analyze_network
-from datetime import datetime
+import sys
+from pathlib import Path
+
+# Add project root to path
+project_root = Path(__file__).parent.parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+from backend.graph_engine.graph_builder import get_node_list, get_node_attributes, get_neighbors
+from backend.intelligence_engine.analyzer import analyze_network
 import pandas as pd
 
 def render():
@@ -101,61 +107,4 @@ def render():
                 <div class="entity-card">
                     <strong>🔍 {entity['id']}</strong>
                     <br><span style="color: #888; font-size: 0.85rem;">{entity['type']} | {entity['name']}</span>
-                </div>
-                """, unsafe_allow_html=True)
-            with col2:
-                st.caption(f"Connections: {entity['degree']}")
-            with col3:
-                st.markdown(f'<span class="status-badge status-{priority_label.lower()}">{color} {priority_label}</span>', unsafe_allow_html=True)
-            with col4:
-                if st.button("View", key=f"view_dash_{entity['id']}"):
-                    st.session_state.selected_entity = entity['id']
-                    st.session_state.current_page = "Entity Profile"
-                    st.rerun()
-            
-            st.markdown("---")
-    else:
-        st.info("No priority leads found. Generate sample data to see leads.")
-    
-    # ===== RECENT ACTIVITY =====
-    st.markdown("## 📋 Recent Activity")
-    
-    activities = [
-        "🔄 Network analysis completed - 3 new patterns found",
-        "🔗 Cross-case link discovered between CASE-001 and CASE-002",
-        "🚨 Priority lead updated for Entity P-0012",
-        "📊 Evidence correlation detected in financial records",
-        "🔍 New entity added to the network"
-    ]
-    
-    for activity in activities:
-        st.markdown(f"<div style='padding: 0.3rem 0; animation: slideInLeft 0.5s ease-out;'>{activity}</div>", unsafe_allow_html=True)
-    
-    # ===== NETWORK STATS =====
-    st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("### 📈 Network Statistics")
-        if metrics:
-            stats_data = {
-                'Metric': ['Total Nodes', 'Total Edges', 'Node Types'],
-                'Value': [
-                    metrics.get('total_nodes', 0),
-                    metrics.get('total_edges', 0),
-                    ', '.join([f"{k}: {v}" for k, v in metrics.get('node_types', {}).items()])
-                ]
-            }
-            st.table(pd.DataFrame(stats_data))
-    
-    with col2:
-        st.markdown("### 🔗 Quick Insights")
-        insights = [
-            f"🔹 {metrics['total_nodes'] if metrics else 0} entities in the network",
-            f"🔹 {metrics['total_edges'] if metrics else 0} relationships detected",
-            f"🔹 {len([e for e in (metrics['priority_entities'] if metrics else []) if e['degree'] >= 4])} high priority leads",
-            f"🔹 {cross_case} cross-case connections found"
-        ]
-        for insight in insights:
-            st.markdown(f"<div style='padding: 0.3rem 0;'>{insight}</div>", unsafe_allow_html=True)
+                </
