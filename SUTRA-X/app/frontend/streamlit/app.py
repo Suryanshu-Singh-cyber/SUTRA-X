@@ -25,177 +25,26 @@ st.set_page_config(
 )
 
 # ============================================================================
-# APPLY DARK THEME CSS
+# CHECK PLOTLY AND NETWORKX - FIXED
 # ============================================================================
 
-st.markdown("""
-<style>
-    /* ===== DARK THEME ===== */
-    .stApp {
-        background: #0e1117;
-    }
-    
-    .main-header {
-        background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
-        padding: 2rem 3rem;
-        border-radius: 15px;
-        margin-bottom: 2rem;
-        border: 1px solid rgba(102, 126, 234, 0.2);
-    }
-    
-    .main-title {
-        font-size: 3rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 30%, #f093fb 60%, #f5576c 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        letter-spacing: -1px;
-    }
-    
-    .main-subtitle {
-        font-size: 1.1rem;
-        color: rgba(255,255,255,0.7);
-        margin-top: 0.2rem;
-    }
-    
-    /* ===== METRIC CARDS ===== */
-    .metric-card {
-        background: #1a1a2e;
-        padding: 1.2rem 1.5rem;
-        border-radius: 12px;
-        border-left: 4px solid #667eea;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-        margin-bottom: 0.5rem;
-        transition: all 0.3s ease;
-    }
-    
-    .metric-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 30px rgba(0,0,0,0.4);
-    }
-    
-    .metric-card .icon { font-size: 1.8rem; }
-    .metric-card .value { 
-        font-size: 2rem; 
-        font-weight: 700; 
-        color: #ffffff;
-        margin: 0.3rem 0;
-    }
-    .metric-card .label { 
-        font-size: 0.85rem; 
-        color: #94a3b8;
-        font-weight: 400;
-    }
-    .metric-critical { border-left-color: #ef4444; }
-    .metric-warning { border-left-color: #f59e0b; }
-    .metric-success { border-left-color: #10b981; }
-    .metric-info { border-left-color: #3b82f6; }
-    
-    /* ===== STATUS BADGES ===== */
-    .status-badge {
-        display: inline-block;
-        padding: 4px 14px;
-        border-radius: 50px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        margin: 0.2rem 0;
-    }
-    .status-online { background: #10b981; color: white; }
-    .status-offline { background: #ef4444; color: white; }
-    .status-warning { background: #f59e0b; color: #1a1a2e; }
-    .status-info { background: #3b82f6; color: white; }
-    
-    /* ===== ENTITY CARDS ===== */
-    .entity-card {
-        background: #1a1a2e;
-        padding: 0.8rem 1.2rem;
-        border-radius: 10px;
-        margin: 0.3rem 0;
-        border-left: 3px solid #667eea;
-        transition: all 0.3s ease;
-        color: #e2e8f0;
-    }
-    .entity-card:hover {
-        background: #24243e;
-        transform: translateX(5px);
-    }
-    .entity-card strong { color: #ffffff; }
-    
-    /* ===== ALERT CARDS ===== */
-    .alert-critical {
-        background: linear-gradient(135deg, #7f1d1d, #991b1b);
-        color: white;
-        padding: 1rem;
-        border-radius: 10px;
-        margin: 0.5rem 0;
-        border: 1px solid #ef4444;
-    }
-    .alert-warning {
-        background: linear-gradient(135deg, #78350f, #92400e);
-        color: white;
-        padding: 1rem;
-        border-radius: 10px;
-        margin: 0.5rem 0;
-        border: 1px solid #f59e0b;
-    }
-    .alert-info {
-        background: linear-gradient(135deg, #1e3a5f, #1a365d);
-        color: white;
-        padding: 1rem;
-        border-radius: 10px;
-        margin: 0.5rem 0;
-        border: 1px solid #3b82f6;
-    }
-    
-    /* ===== RAG RESPONSE ===== */
-    .rag-response {
-        background: #1a1a2e;
-        padding: 1.5rem;
-        border-radius: 12px;
-        border-left: 4px solid #667eea;
-        margin: 0.5rem 0;
-        color: #e2e8f0;
-    }
-    .rag-response strong { color: #ffffff; }
-    
-    /* ===== BUTTONS ===== */
-    .stButton > button {
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        padding: 0.5rem 1.5rem;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        width: 100%;
-    }
-    .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(102,126,234,0.4);
-    }
-    
-    /* ===== SIDEBAR ===== */
-    .css-1d391kg, .css-1adrfps {
-        background: #0e1117;
-    }
-    
-    /* ===== FOOTER ===== */
-    .footer {
-        text-align: center;
-        padding: 1.5rem 0;
-        color: #64748b;
-        font-size: 0.8rem;
-        border-top: 1px solid #1a1a2e;
-        margin-top: 2rem;
-    }
-    
-    /* ===== RESPONSIVE ===== */
-    @media (max-width: 768px) {
-        .main-title { font-size: 2rem; }
-        .metric-card .value { font-size: 1.5rem; }
-    }
-</style>
-""", unsafe_allow_html=True)
+PLOTLY_AVAILABLE = False
+NETWORKX_AVAILABLE = False
+
+try:
+    import plotly.graph_objects as go
+    import plotly.express as px
+    PLOTLY_AVAILABLE = True
+    print("✅ Plotly loaded successfully")
+except ImportError as e:
+    print(f"⚠️ Plotly not available: {e}")
+
+try:
+    import networkx as nx
+    NETWORKX_AVAILABLE = True
+    print("✅ NetworkX loaded successfully")
+except ImportError as e:
+    print(f"⚠️ NetworkX not available: {e}")
 
 # ============================================================================
 # GROQ AI ENGINE - HTTP FIRST WITH DYNAMIC MODEL DISCOVERY
@@ -228,7 +77,6 @@ GROQ_AVAILABLE_MODELS = []
 
 
 def _groq_headers():
-    """Return headers for Groq API requests"""
     return {
         "Authorization": f"Bearer {GROQ_API_KEY}",
         "Content-Type": "application/json",
@@ -237,26 +85,19 @@ def _groq_headers():
 
 
 def _groq_list_models():
-    """Return model IDs available to THIS API key."""
     if not GROQ_API_KEY:
         return []
-
     try:
         response = requests.get(
             f"{GROQ_BASE_URL}/models",
             headers=_groq_headers(),
             timeout=10,
         )
-
         if response.status_code != 200:
-            raise RuntimeError(
-                f"HTTP {response.status_code}: {response.text[:500]}"
-            )
-
+            raise RuntimeError(f"HTTP {response.status_code}: {response.text[:500]}")
         payload = response.json()
         data = payload.get("data", [])
         return [str(item.get("id")) for item in data if item.get("id")]
-
     except Exception as exc:
         global GROQ_LAST_ERROR
         GROQ_LAST_ERROR = f"Model discovery failed: {type(exc).__name__}: {exc}"
@@ -264,28 +105,21 @@ def _groq_list_models():
 
 
 def _select_groq_model(available_models):
-    """Pick the best model the current key can actually access."""
     available_set = set(available_models)
-
     for model in PREFERRED_GROQ_MODELS:
         if model in available_set:
             return model
-
-    # Prefer text-generation models
     blocked_words = ("whisper", "guard", "tts", "speech", "embed")
     candidates = [
         model for model in available_models
         if not any(word in model.lower() for word in blocked_words)
     ]
-
     return candidates[0] if candidates else None
 
 
-# Initialize Groq if API key is available
 if GROQ_API_KEY:
     GROQ_AVAILABLE_MODELS = _groq_list_models()
     selected_model = _select_groq_model(GROQ_AVAILABLE_MODELS)
-
     if selected_model:
         GROQ_MODEL = selected_model
         GROQ_WORKING = True
@@ -297,7 +131,6 @@ else:
     ENGINE_MODE = "No API Key"
 
 
-# Optional SDK: the application does NOT depend on it.
 try:
     from groq import Groq
     GROQ_SDK_AVAILABLE = True
@@ -307,43 +140,28 @@ except ImportError:
 
 
 def test_groq_connection():
-    """Perform an explicit, user-triggered end-to-end test."""
     global GROQ_WORKING, GROQ_MODEL, ENGINE_MODE, GROQ_LAST_ERROR, GROQ_AVAILABLE_MODELS
-
     if not GROQ_API_KEY:
         GROQ_WORKING = False
         ENGINE_MODE = "No API Key"
         GROQ_LAST_ERROR = "GROQ_API_KEY is missing."
         return False
-
     GROQ_LAST_ERROR = None
     GROQ_AVAILABLE_MODELS = _groq_list_models()
     selected_model = _select_groq_model(GROQ_AVAILABLE_MODELS)
-
     if not selected_model:
         GROQ_WORKING = False
         ENGINE_MODE = "No Accessible Chat Model"
         if not GROQ_LAST_ERROR:
-            GROQ_LAST_ERROR = (
-                "The API key is reachable, but /models did not return an accessible "
-                "chat model for this project/key."
-            )
+            GROQ_LAST_ERROR = "The API key is reachable, but /models did not return an accessible chat model."
         return False
-
     GROQ_MODEL = selected_model
-
     payload = {
         "model": GROQ_MODEL,
-        "messages": [
-            {
-                "role": "user",
-                "content": "Reply with exactly: SUTRA-X Groq connection verified."
-            }
-        ],
+        "messages": [{"role": "user", "content": "Reply with exactly: SUTRA-X Groq connection verified."}],
         "temperature": 0,
         "max_completion_tokens": 20,
     }
-
     try:
         response = requests.post(
             f"{GROQ_BASE_URL}/chat/completions",
@@ -351,17 +169,14 @@ def test_groq_connection():
             json=payload,
             timeout=20,
         )
-
         if response.status_code == 200:
             GROQ_WORKING = True
             ENGINE_MODE = "HTTP API · Verified"
             return True
-
         GROQ_WORKING = False
         ENGINE_MODE = f"HTTP {response.status_code}"
         GROQ_LAST_ERROR = response.text[:1000]
         return False
-
     except requests.RequestException as exc:
         GROQ_WORKING = False
         ENGINE_MODE = "HTTP Connection Error"
@@ -370,36 +185,22 @@ def test_groq_connection():
 
 
 def query_groq(prompt: str, temperature=0.4, max_tokens=700) -> str:
-    """Call Groq HTTP API using a model confirmed for the current key."""
     global GROQ_WORKING, GROQ_LAST_ERROR, ENGINE_MODE
-
     if not GROQ_API_KEY:
         return get_fallback_response(prompt)
-
     if not GROQ_MODEL:
         test_groq_connection()
-
     if not GROQ_MODEL:
         return get_fallback_response(prompt)
-
     payload = {
         "model": GROQ_MODEL,
         "messages": [
-            {
-                "role": "system",
-                "content": (
-                    "You are SUTRA-X AI, an investigation-support assistant. "
-                    "Analyze only the supplied synthetic or authorized evidence. "
-                    "Do not invent facts or declare anyone guilty. Clearly separate "
-                    "observations from hypotheses and recommend verification steps."
-                ),
-            },
+            {"role": "system", "content": "You are SUTRA-X AI, an investigation-support assistant. Analyze only the supplied evidence. Do not invent facts or declare anyone guilty."},
             {"role": "user", "content": prompt},
         ],
         "temperature": temperature,
         "max_completion_tokens": max_tokens,
     }
-
     try:
         response = requests.post(
             f"{GROQ_BASE_URL}/chat/completions",
@@ -407,7 +208,6 @@ def query_groq(prompt: str, temperature=0.4, max_tokens=700) -> str:
             json=payload,
             timeout=30,
         )
-
         if response.status_code == 200:
             data = response.json()
             content = data.get("choices", [{}])[0].get("message", {}).get("content")
@@ -416,26 +216,21 @@ def query_groq(prompt: str, temperature=0.4, max_tokens=700) -> str:
                 ENGINE_MODE = "HTTP API · Live"
                 GROQ_LAST_ERROR = None
                 return content.strip()
-
             GROQ_WORKING = False
             ENGINE_MODE = "Malformed API Response"
             GROQ_LAST_ERROR = "Groq returned HTTP 200 but no message content."
             return get_fallback_response(prompt)
-
         GROQ_WORKING = False
         ENGINE_MODE = f"HTTP {response.status_code}"
         GROQ_LAST_ERROR = response.text[:1500]
-
     except requests.RequestException as exc:
         GROQ_WORKING = False
         ENGINE_MODE = "HTTP Connection Error"
         GROQ_LAST_ERROR = f"{type(exc).__name__}: {exc}"
-
     return get_fallback_response(prompt)
 
 
 def groq_diagnostics():
-    """Return diagnostic information about Groq connection"""
     return {
         "api_key_configured": bool(GROQ_API_KEY),
         "sdk_installed": GROQ_SDK_AVAILABLE,
@@ -449,118 +244,26 @@ def groq_diagnostics():
 
 
 def get_fallback_response(query):
-    """Fallback response when API is unavailable."""
     query_lower = query.lower()
     responses = []
-
     if "person" in query_lower or "who" in query_lower or "entity" in query_lower:
         responses.append("🔍 Key entities can be prioritized using network centrality and relationship density.")
         responses.append("💡 Review the Entity Profile and Network Graph before drawing conclusions.")
-
     if "connection" in query_lower or "link" in query_lower:
         responses.append("🔗 Multiple relationships can be explored through the interactive network graph.")
         responses.append("💡 Compare relationship type, timing, and repeated interactions.")
-
     if "pattern" in query_lower:
         responses.append("📊 Repeated or unusual relationship patterns may deserve analyst review.")
         responses.append("💡 Verify the underlying evidence before escalating an alert.")
-
     if "priority" in query_lower:
         responses.append("🚨 Priority entities can be ranked using degree/centrality and rule-based risk indicators.")
         responses.append("💡 Start with high-centrality entities and inspect their direct evidence.")
-
     if not responses:
         responses.append("💡 Network analysis is available. Try asking about entities, relationships, risk, or patterns.")
-
     return "\n".join(responses)
 
 # ============================================================================
-# CHECK PLOTLY AND NETWORKX
-# ============================================================================
-
-try:
-    import plotly.graph_objects as go
-    import plotly.express as px
-    PLOTLY_AVAILABLE = True
-except ImportError:
-    PLOTLY_AVAILABLE = False
-
-try:
-    import networkx as nx
-    NETWORKX_AVAILABLE = True
-except ImportError:
-    NETWORKX_AVAILABLE = False
-
-# ============================================================================
-# SESSION STATE INITIALIZATION
-# ============================================================================
-
-states = {
-    'data_loaded': False,
-    'graph': None,
-    'selected_entity': None,
-    'current_page': "Dashboard",
-    'entity_list': [],
-    'alerts': [],
-    'authenticated': False,
-    'current_user': None,
-    'user_role': "viewer",
-    'ai_query': "",
-    'audit_logs': [],
-    'export_history': [],
-    'simulation_results': None,
-    'emergency_triggered': False,
-    'alert_sent': False,
-    'offline_mode': False,
-    'ai_response_cache': {}
-}
-
-for key, val in states.items():
-    if key not in st.session_state:
-        st.session_state[key] = val
-
-# ============================================================================
-# RBAC SECURITY SCHEMA
-# ============================================================================
-
-USERS_DB = {
-    "admin": {"password": "admin123", "role": "admin", "name": "Administrator"},
-    "investigator": {"password": "invest123", "role": "investigator", "name": "Senior Investigator"},
-    "analyst": {"password": "analyst123", "role": "analyst", "name": "Data Analyst"},
-    "viewer": {"password": "viewer123", "role": "viewer", "name": "Viewer"}
-}
-
-ROLE_PERMISSIONS = {
-    "admin": ["view_data", "export_data", "manage_entities", "manage_users", "view_audit", "manage_alerts", "run_simulation", "use_ai"],
-    "investigator": ["view_data", "export_data", "manage_entities", "view_audit", "manage_alerts", "run_simulation", "use_ai"],
-    "analyst": ["view_data", "export_data", "view_audit", "use_ai"],
-    "viewer": ["view_data"]
-}
-
-def authenticate_user(username, password):
-    if username in USERS_DB and USERS_DB[username]["password"] == password:
-        return USERS_DB[username]
-    return None
-
-def has_permission(permission):
-    role = st.session_state.get('user_role', 'viewer')
-    return permission in ROLE_PERMISSIONS.get(role, [])
-
-def add_audit_log(action, resource, details=""):
-    log_entry = {
-        'timestamp': datetime.now().isoformat(),
-        'user': st.session_state.get('current_user', 'unknown'),
-        'role': st.session_state.get('user_role', 'unknown'),
-        'action': action,
-        'resource': resource,
-        'details': details
-    }
-    st.session_state.audit_logs.insert(0, log_entry)
-    if len(st.session_state.audit_logs) > 100:
-        st.session_state.audit_logs = st.session_state.audit_logs[:100]
-
-# ============================================================================
-# GRAPH CLASS
+# GRAPH CLASS - FIXED
 # ============================================================================
 
 class SimpleGraph:
@@ -614,20 +317,35 @@ class SimpleGraph:
         return {}
 
 # ============================================================================
-# DATA GENERATION
+# DATA GENERATION - FIXED
 # ============================================================================
 
 def generate_sample_network():
+    """Generate realistic sample criminal network - FIXED to always work"""
+    
+    # Always try to use NetworkX first
     if NETWORKX_AVAILABLE:
-        G = nx.Graph()
+        try:
+            G = nx.Graph()
+            print("✅ Using NetworkX for graph generation")
+        except:
+            G = SimpleGraph()
+            print("⚠️ NetworkX failed, using SimpleGraph")
     else:
         G = SimpleGraph()
+        print("⚠️ Using SimpleGraph (NetworkX not available)")
     
     first_names = ['Raj', 'Amit', 'Priya', 'Suresh', 'Anita', 'Vikram', 'Neha', 'Rahul', 
-                   'Sunita', 'Mohan', 'Geeta', 'Arjun', 'Kavita', 'Deepak', 'Anjali']
+                   'Sunita', 'Mohan', 'Geeta', 'Arjun', 'Kavita', 'Deepak', 'Anjali',
+                   'Sanjay', 'Meera', 'Ravi', 'Pooja', 'Kumar', 'Ashok', 'Preeti',
+                   'Vijay', 'Nisha', 'Ramesh', 'Sneha', 'Mahesh', 'Jyoti']
+    
     last_names = ['Sharma', 'Singh', 'Patel', 'Reddy', 'Rao', 'Joshi', 'Gupta', 'Verma', 
-                  'Kumar', 'Nair', 'Mehta', 'Choudhary', 'Yadav', 'Khan', 'Das']
-    locations = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Hyderabad', 'Pune', 'Kolkata']
+                  'Kumar', 'Nair', 'Mehta', 'Choudhary', 'Yadav', 'Khan', 'Das',
+                  'Jain', 'Agarwal', 'Malhotra', 'Saxena', 'Tripathi']
+    
+    locations = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Hyderabad', 'Pune', 'Kolkata',
+                 'Ahmedabad', 'Lucknow', 'Jaipur']
     
     persons = []
     for i in range(25):
@@ -637,14 +355,16 @@ def generate_sample_network():
                    age=random.randint(22, 60),
                    city=random.choice(locations),
                    occupation=random.choice(['Business', 'Student', 'Government', 'Private', 'Professional']),
-                   latitude=8.4 + random.random() * 29.2,
-                   longitude=68.7 + random.random() * 28.6)
+                   latitude=random.uniform(8.4, 37.6),
+                   longitude=random.uniform(68.7, 97.25),
+                   status=random.choice(['Active', 'Under Investigation', 'Cleared']))
         persons.append(person_id)
     
     phones = []
     for i in range(15):
         phone_id = f"PH-{i+1:04d}"
-        G.add_node(phone_id, type='PHONE', number=f"98{random.randint(10000000, 99999999)}")
+        G.add_node(phone_id, type='PHONE', number=f"98{random.randint(10000000, 99999999)}",
+                   provider=random.choice(['Jio', 'Airtel', 'Vodafone', 'BSNL']))
         phones.append(phone_id)
         owner = random.choice(persons)
         G.add_edge(owner, phone_id, type='OWNS', confidence=0.8)
@@ -652,33 +372,73 @@ def generate_sample_network():
     accounts = []
     for i in range(12):
         account_id = f"ACC-{i+1:04d}"
-        G.add_node(account_id, type='ACCOUNT', bank=random.choice(['SBI', 'HDFC', 'ICICI', 'Axis']))
+        G.add_node(account_id, type='ACCOUNT', 
+                   bank=random.choice(['SBI', 'HDFC', 'ICICI', 'Axis', 'PNB']),
+                   account_type=random.choice(['Savings', 'Current', 'Fixed Deposit']))
         accounts.append(account_id)
         owner = random.choice(persons)
         G.add_edge(owner, account_id, type='OWNS', confidence=0.7)
     
+    vehicles = []
+    prefixes = ['MH', 'DL', 'KA', 'TN', 'TS', 'GJ', 'UP', 'WB', 'RJ']
+    for i in range(8):
+        vehicle_id = f"V-{i+1:04d}"
+        G.add_node(vehicle_id, type='VEHICLE', 
+                   registration=f"{random.choice(prefixes)}{random.randint(1,99)} {random.choice(['AB','CD','EF','GH'])}{random.randint(1000,9999)}",
+                   make=random.choice(['Maruti', 'Hyundai', 'Toyota', 'Honda', 'Tata']),
+                   model=random.choice(['Swift', 'i20', 'Camry', 'City', 'Nexon']))
+        vehicles.append(vehicle_id)
+        owner = random.choice(persons)
+        G.add_edge(owner, vehicle_id, type='OWNS', confidence=0.6)
+    
     cases = []
-    case_titles = ['Drug Trafficking Ring', 'Financial Fraud Network', 'Arms Dealing', 'Cyber Crime Syndicate', 'Money Laundering']
-    for i in range(5):
+    case_titles = ['Drug Trafficking Ring', 'Financial Fraud Network', 'Arms Dealing', 
+                   'Cyber Crime Syndicate', 'Money Laundering', 'Human Trafficking',
+                   'Counterfeit Currency', 'Organized Crime']
+    for i in range(6):
         case_id = f"CASE-{i+1:03d}"
-        G.add_node(case_id, type='CASE', title=case_titles[i],
-                   status=random.choice(['Active', 'Pending', 'Under Review']))
+        G.add_node(case_id, type='CASE', 
+                   title=case_titles[i % len(case_titles)],
+                   status=random.choice(['Active', 'Pending', 'Under Review', 'Closed']),
+                   priority=random.choice(['High', 'Medium', 'Low']))
         cases.append(case_id)
-        for _ in range(random.randint(2, 4)):
+        for _ in range(random.randint(2, 5)):
             person = random.choice(persons)
             G.add_edge(case_id, person, type='INVOLVED', confidence=0.6 + random.random()*0.3)
     
-    for _ in range(20):
+    # CDR Calls
+    for _ in range(25):
         caller = random.choice(phones)
         receiver = random.choice(phones)
         if caller != receiver:
-            G.add_edge(caller, receiver, type='CALLED', duration=random.randint(30, 600))
+            G.add_edge(caller, receiver, type='CALLED', 
+                      duration=random.randint(30, 600),
+                      call_type=random.choice(['Voice', 'SMS', 'Data']))
     
-    for _ in range(15):
+    # Transactions
+    for _ in range(20):
         from_acc = random.choice(accounts)
         to_acc = random.choice(accounts)
         if from_acc != to_acc:
-            G.add_edge(from_acc, to_acc, type='TRANSACTION', amount=random.randint(5000, 500000))
+            G.add_edge(from_acc, to_acc, type='TRANSACTION', 
+                      amount=random.randint(1000, 500000),
+                      transaction_type=random.choice(['Transfer', 'Deposit', 'Withdrawal', 'Payment']))
+    
+    # Cross-case connections
+    for _ in range(10):
+        person = random.choice(persons)
+        case = random.choice(cases)
+        if not G.has_edge(person, case):
+            G.add_edge(person, case, type='INVOLVED', confidence=0.5 + random.random()*0.4)
+    
+    # Hidden connections
+    hidden_pairs = [
+        ('P-0001', 'P-0015'), ('PH-0003', 'PH-0018'), ('ACC-0002', 'ACC-0012'),
+        ('P-0008', 'P-0025'), ('PH-0007', 'PH-0014'), ('ACC-0005', 'ACC-0015')
+    ]
+    for src, tgt in hidden_pairs:
+        if src in G.nodes and tgt in G.nodes and not G.has_edge(src, tgt):
+            G.add_edge(src, tgt, type='HIDDEN_CONNECTION', confidence=0.7, hidden=True)
     
     return G
 
@@ -688,27 +448,48 @@ def generate_sample_network():
 
 def get_node_list(G):
     try:
-        return list(G.nodes())
+        if NETWORKX_AVAILABLE:
+            return list(G.nodes())
+        else:
+            return list(G.nodes)
     except:
         return []
 
 def get_node_attributes(G, node):
     try:
-        return dict(G.nodes[node])
+        if NETWORKX_AVAILABLE:
+            return dict(G.nodes[node])
+        else:
+            return G.nodes[node]
     except:
         return {}
 
 def get_neighbors(G, node):
     try:
-        return list(G.neighbors(node))
+        if NETWORKX_AVAILABLE:
+            return list(G.neighbors(node))
+        else:
+            return G.neighbors(node)
     except:
         return []
 
 def get_degree(G, node):
     try:
-        return G.degree(node)
+        if NETWORKX_AVAILABLE:
+            return G.degree(node)
+        else:
+            return G.degree(node)
     except:
         return len(get_neighbors(G, node))
+
+def get_edge_data(G, u, v):
+    try:
+        if NETWORKX_AVAILABLE:
+            return G.get_edge_data(u, v)
+        else:
+            return G.get_edge_data(u, v)
+    except:
+        return {}
 
 def analyze_network(G):
     if G is None:
@@ -718,7 +499,10 @@ def analyze_network(G):
     total_nodes = len(node_list)
     total_edges = 0
     try:
-        total_edges = G.number_of_edges()
+        if NETWORKX_AVAILABLE:
+            total_edges = G.number_of_edges()
+        else:
+            total_edges = len(G.edges)
     except:
         total_edges = 0
     
@@ -873,7 +657,6 @@ def generate_simulation(G, target_entity):
 # ============================================================================
 
 def get_ai_response(query, context):
-    """Return a clearly labeled Groq response or local fallback."""
     context_str = f"""
 SUTRA-X NETWORK ANALYSIS PLATFORM
 
@@ -916,17 +699,382 @@ Separate observed patterns from hypotheses. Do not accuse or declare guilt.
     }
 
 # ============================================================================
+# SESSION STATE INITIALIZATION
+# ============================================================================
+
+states = {
+    'data_loaded': False,
+    'graph': None,
+    'selected_entity': None,
+    'current_page': "Dashboard",
+    'entity_list': [],
+    'alerts': [],
+    'authenticated': False,
+    'current_user': None,
+    'user_role': "viewer",
+    'ai_query': "",
+    'audit_logs': [],
+    'export_history': [],
+    'simulation_results': None,
+    'emergency_triggered': False,
+    'alert_sent': False,
+    'offline_mode': False,
+    'ai_response_cache': {}
+}
+
+for key, val in states.items():
+    if key not in st.session_state:
+        st.session_state[key] = val
+
+# ============================================================================
+# RBAC SECURITY SCHEMA
+# ============================================================================
+
+USERS_DB = {
+    "admin": {"password": "admin123", "role": "admin", "name": "Administrator"},
+    "investigator": {"password": "invest123", "role": "investigator", "name": "Senior Investigator"},
+    "analyst": {"password": "analyst123", "role": "analyst", "name": "Data Analyst"},
+    "viewer": {"password": "viewer123", "role": "viewer", "name": "Viewer"}
+}
+
+ROLE_PERMISSIONS = {
+    "admin": ["view_data", "export_data", "manage_entities", "manage_users", "view_audit", "manage_alerts", "run_simulation", "use_ai"],
+    "investigator": ["view_data", "export_data", "manage_entities", "view_audit", "manage_alerts", "run_simulation", "use_ai"],
+    "analyst": ["view_data", "export_data", "view_audit", "use_ai"],
+    "viewer": ["view_data"]
+}
+
+def authenticate_user(username, password):
+    if username in USERS_DB and USERS_DB[username]["password"] == password:
+        return USERS_DB[username]
+    return None
+
+def has_permission(permission):
+    role = st.session_state.get('user_role', 'viewer')
+    return permission in ROLE_PERMISSIONS.get(role, [])
+
+def add_audit_log(action, resource, details=""):
+    log_entry = {
+        'timestamp': datetime.now().isoformat(),
+        'user': st.session_state.get('current_user', 'unknown'),
+        'role': st.session_state.get('user_role', 'unknown'),
+        'action': action,
+        'resource': resource,
+        'details': details
+    }
+    st.session_state.audit_logs.insert(0, log_entry)
+    if len(st.session_state.audit_logs) > 100:
+        st.session_state.audit_logs = st.session_state.audit_logs[:100]
+
+# ============================================================================
+# UI THEME - BEAUTIFUL DARK THEME WITH HUMANIZED TEXT
+# ============================================================================
+
+st.markdown("""
+<style>
+    /* ===== BASE ===== */
+    .stApp {
+        background: #0e1117;
+        color: #e2e8f0;
+    }
+    
+    /* ===== HEADER ===== */
+    .main-header {
+        background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+        padding: 2.5rem 3.5rem;
+        border-radius: 20px;
+        margin-bottom: 2rem;
+        border: 1px solid rgba(102, 126, 234, 0.15);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .main-header::after {
+        content: '🔍';
+        position: absolute;
+        right: 2rem;
+        bottom: 1rem;
+        font-size: 6rem;
+        opacity: 0.05;
+    }
+    
+    .main-title {
+        font-size: 3.2rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 30%, #f093fb 60%, #f5576c 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -1px;
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+    
+    .main-subtitle {
+        font-size: 1.1rem;
+        color: rgba(255,255,255,0.65);
+        margin-top: 0.2rem;
+        font-weight: 300;
+        letter-spacing: 0.5px;
+    }
+    
+    .tagline {
+        font-size: 0.85rem;
+        color: rgba(255,255,255,0.35);
+        margin-top: 0.5rem;
+        font-style: italic;
+        letter-spacing: 0.3px;
+    }
+    
+    /* ===== METRIC CARDS ===== */
+    .metric-card {
+        background: linear-gradient(145deg, #1a1a2e, #1f1f3a);
+        padding: 1.2rem 1.5rem;
+        border-radius: 14px;
+        border-left: 4px solid #667eea;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        margin-bottom: 0.5rem;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .metric-card::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle, rgba(102,126,234,0.03) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+        border-color: #764ba2;
+    }
+    
+    .metric-card .icon { font-size: 1.8rem; position: relative; z-index: 1; }
+    .metric-card .value { 
+        font-size: 2.2rem; 
+        font-weight: 700; 
+        color: #ffffff;
+        margin: 0.2rem 0;
+        position: relative;
+        z-index: 1;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+    .metric-card .label { 
+        font-size: 0.85rem; 
+        color: #94a3b8;
+        font-weight: 400;
+        position: relative;
+        z-index: 1;
+    }
+    .metric-critical { border-left-color: #ef4444; }
+    .metric-warning { border-left-color: #f59e0b; }
+    .metric-success { border-left-color: #10b981; }
+    .metric-info { border-left-color: #3b82f6; }
+    
+    /* ===== STATUS BADGES ===== */
+    .status-badge {
+        display: inline-block;
+        padding: 4px 16px;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin: 0.2rem 0;
+        letter-spacing: 0.3px;
+    }
+    .status-online { background: #10b98120; color: #10b981; border: 1px solid #10b98140; }
+    .status-offline { background: #ef444420; color: #ef4444; border: 1px solid #ef444440; }
+    .status-warning { background: #f59e0b20; color: #f59e0b; border: 1px solid #f59e0b40; }
+    .status-info { background: #3b82f620; color: #3b82f6; border: 1px solid #3b82f640; }
+    .status-high { background: #ef444420; color: #ef4444; border: 1px solid #ef444440; }
+    .status-medium { background: #f59e0b20; color: #f59e0b; border: 1px solid #f59e0b40; }
+    .status-low { background: #10b98120; color: #10b981; border: 1px solid #10b98140; }
+    
+    /* ===== ENTITY CARDS ===== */
+    .entity-card {
+        background: linear-gradient(145deg, #1a1a2e, #1f1f3a);
+        padding: 0.8rem 1.2rem;
+        border-radius: 10px;
+        margin: 0.3rem 0;
+        border-left: 3px solid #667eea;
+        transition: all 0.3s ease;
+        color: #e2e8f0;
+    }
+    .entity-card:hover {
+        background: linear-gradient(145deg, #24243e, #2a2a4e);
+        transform: translateX(6px);
+        border-color: #764ba2;
+    }
+    .entity-card strong { color: #ffffff; }
+    .entity-card .entity-name { color: #94a3b8; font-size: 0.85rem; }
+    
+    /* ===== ALERT CARDS ===== */
+    .alert-critical {
+        background: linear-gradient(135deg, #7f1d1d, #991b1b);
+        color: white;
+        padding: 1rem 1.2rem;
+        border-radius: 10px;
+        margin: 0.5rem 0;
+        border: 1px solid #ef4444;
+    }
+    .alert-warning {
+        background: linear-gradient(135deg, #78350f, #92400e);
+        color: white;
+        padding: 1rem 1.2rem;
+        border-radius: 10px;
+        margin: 0.5rem 0;
+        border: 1px solid #f59e0b;
+    }
+    .alert-info {
+        background: linear-gradient(135deg, #1e3a5f, #1a365d);
+        color: white;
+        padding: 1rem 1.2rem;
+        border-radius: 10px;
+        margin: 0.5rem 0;
+        border: 1px solid #3b82f6;
+    }
+    
+    /* ===== RAG RESPONSE ===== */
+    .rag-response {
+        background: linear-gradient(145deg, #1a1a2e, #1f1f3a);
+        padding: 1.5rem;
+        border-radius: 12px;
+        border-left: 4px solid #667eea;
+        margin: 0.5rem 0;
+        color: #e2e8f0;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+    .rag-response strong { color: #ffffff; }
+    .rag-response p { line-height: 1.7; }
+    
+    /* ===== BUTTONS ===== */
+    .stButton > button {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 0.6rem 1.5rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        width: 100%;
+        letter-spacing: 0.3px;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+    .stButton > button:hover {
+        transform: translateY(-2px) scale(1.01);
+        box-shadow: 0 8px 30px rgba(102,126,234,0.4);
+    }
+    
+    /* ===== SIDEBAR ===== */
+    .css-1d391kg, .css-1adrfps {
+        background: #0e1117;
+    }
+    
+    /* ===== FOOTER ===== */
+    .footer {
+        text-align: center;
+        padding: 1.5rem 0;
+        color: #475569;
+        font-size: 0.8rem;
+        border-top: 1px solid #1a1a2e;
+        margin-top: 2rem;
+        letter-spacing: 0.5px;
+    }
+    
+    /* ===== SECTION TITLES ===== */
+    .section-title {
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #ffffff;
+        margin: 1.5rem 0 0.8rem 0;
+        letter-spacing: -0.3px;
+    }
+    
+    .section-subtitle {
+        font-size: 0.9rem;
+        color: #94a3b8;
+        margin-bottom: 1rem;
+        font-weight: 300;
+    }
+    
+    /* ===== QUICK STATS ===== */
+    .quick-stats {
+        background: linear-gradient(145deg, #1a1a2e, #1f1f3a);
+        padding: 1.5rem;
+        border-radius: 14px;
+        border: 1px solid #2a2a4e;
+    }
+    .quick-stats .stat-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #2a2a4e;
+        color: #e2e8f0;
+    }
+    .quick-stats .stat-item:last-child { border-bottom: none; }
+    .quick-stats .stat-label { color: #94a3b8; }
+    .quick-stats .stat-value { font-weight: 600; color: #ffffff; }
+    
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+        .main-title { font-size: 2rem; }
+        .main-header { padding: 1.5rem; }
+        .metric-card .value { font-size: 1.5rem; }
+    }
+    
+    /* ===== HUMANIZED TEXT ===== */
+    .human-text {
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        line-height: 1.8;
+        color: #e2e8f0;
+    }
+    
+    .welcome-text {
+        font-size: 1.1rem;
+        color: #94a3b8;
+        line-height: 1.8;
+        max-width: 700px;
+    }
+    
+    .highlight {
+        color: #667eea;
+        font-weight: 500;
+    }
+    
+    /* ===== INSIGHT BADGE ===== */
+    .insight-badge {
+        display: inline-block;
+        background: #667eea20;
+        color: #667eea;
+        padding: 2px 14px;
+        border-radius: 50px;
+        font-size: 0.7rem;
+        font-weight: 500;
+        border: 1px solid #667eea40;
+        margin: 0.2rem 0;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# ============================================================================
 # SIDEBAR
 # ============================================================================
 
 with st.sidebar:
     st.markdown("""
     <div style="text-align: center; padding: 0.5rem 0;">
-        <div style="font-size: 2.5rem;">🕵️</div>
-        <div style="font-size: 1.2rem; font-weight: 700; color: #667eea;">SUTRA-X</div>
-        <div style="font-size: 0.6rem; color: #94a3b8;">Smart Unified Threat & Relationship Analytics</div>
+        <div style="font-size: 2.8rem; animation: pulse 2s ease-in-out infinite;">🕵️</div>
+        <div style="font-size: 1.3rem; font-weight: 700; color: #667eea; letter-spacing: -0.5px;">SUTRA-X</div>
+        <div style="font-size: 0.6rem; color: #64748b; margin-top: -2px;">Smart Unified Threat & Relationship Analytics</div>
         <div style="margin-top: 0.5rem;">
             <span class="status-badge status-info">🏆 SIH 2026</span>
+        </div>
+        <div style="margin-top: 0.3rem; font-size: 0.6rem; color: #475569;">
+            AI-Powered Criminal Network Analysis
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -937,28 +1085,23 @@ with st.sidebar:
     st.markdown("### 🤖 AI Status")
     
     if GROQ_WORKING:
-        st.success(f"✅ Groq Online · {GROQ_MODEL}")
+        st.success(f"✅ {GROQ_MODEL}")
+        st.caption("Real AI · Ready")
     elif GROQ_API_KEY:
-        st.warning(f"⚠️ Groq Offline · {ENGINE_MODE}")
+        st.warning(f"⚠️ {ENGINE_MODE}")
         if GROQ_LAST_ERROR:
-            st.caption(str(GROQ_LAST_ERROR)[:200])
+            st.caption(str(GROQ_LAST_ERROR)[:100])
     else:
-        st.error("❌ No API Key Found")
-        st.caption("Set GROQ_API_KEY in .streamlit/secrets.toml")
+        st.error("❌ No API Key")
+        st.caption("Set GROQ_API_KEY in secrets")
     
-    # Test Connection Button
-    if st.button("🔌 Test Groq Connection", use_container_width=True):
-        with st.spinner("Testing Groq connection..."):
+    if st.button("🔌 Test Connection", use_container_width=True):
+        with st.spinner("Testing..."):
             if test_groq_connection():
-                st.success(f"✅ Groq connected! Model: {GROQ_MODEL}")
+                st.success(f"✅ Connected! Model: {GROQ_MODEL}")
             else:
-                st.error(f"❌ Groq connection failed: {GROQ_LAST_ERROR}")
+                st.error(f"❌ Failed: {GROQ_LAST_ERROR}")
         st.rerun()
-    
-    # Diagnostics
-    with st.expander("🔍 Groq Diagnostics"):
-        diag = groq_diagnostics()
-        st.json(diag)
     
     st.markdown("---")
     
@@ -966,23 +1109,24 @@ with st.sidebar:
     st.markdown("### 🔐 Security")
     
     if not st.session_state.authenticated:
-        username = st.text_input("Username", key="login_username")
-        password = st.text_input("Password", type="password", key="login_password")
-        if st.button("Login"):
+        username = st.text_input("Username", key="login_username", placeholder="Enter username")
+        password = st.text_input("Password", type="password", key="login_password", placeholder="Enter password")
+        if st.button("🔑 Login"):
             user = authenticate_user(username, password)
             if user:
                 st.session_state.authenticated = True
                 st.session_state.current_user = username
                 st.session_state.user_role = user['role']
                 add_audit_log("login", "Authentication", f"User: {username}")
-                st.success(f"✅ Welcome {user['name']}!")
+                st.success(f"👋 Welcome, {user['name']}!")
                 st.rerun()
             else:
                 st.error("❌ Invalid credentials")
+        st.caption("Demo: admin/admin123 · investigator/invest123")
     else:
-        st.success(f"✅ {st.session_state.current_user}")
+        st.success(f"👤 {st.session_state.current_user}")
         st.caption(f"Role: {st.session_state.user_role.upper()}")
-        if st.button("Logout"):
+        if st.button("🚪 Logout"):
             add_audit_log("logout", "Authentication", f"User: {st.session_state.current_user}")
             st.session_state.authenticated = False
             st.session_state.current_user = None
@@ -1016,27 +1160,31 @@ with st.sidebar:
     
     # Data Controls
     st.markdown("### 📊 Data")
-    if st.button("🔄 Generate Sample Data"):
-        with st.spinner("Generating..."):
+    if st.button("🔄 Generate Sample Data", use_container_width=True):
+        with st.spinner("Generating network data..."):
             G = generate_sample_network()
             st.session_state.graph = G
             st.session_state.data_loaded = True
             st.session_state.entity_list = get_node_list(G)
             st.session_state.alerts = generate_alerts(G)
             add_audit_log("data_generate", "Network Data", "Sample data generated")
-            st.success("✅ Data generated!")
+            st.success(f"✅ Generated {len(st.session_state.entity_list)} entities!")
             st.rerun()
     
     st.markdown("---")
     
     if st.session_state.data_loaded:
-        st.success(f"✅ Data Loaded")
-        st.caption(f"Entities: {len(st.session_state.entity_list)}")
+        entity_count = len(st.session_state.entity_list)
+        st.success(f"✅ Data Loaded · {entity_count} entities")
+        if entity_count > 0:
+            st.caption(f"Ready for analysis 🔍")
+        else:
+            st.caption("⚠️ No entities found. Try regenerating.")
     else:
         st.info("⏳ No data loaded")
     
     st.markdown("---")
-    st.caption("v3.0.0 | Made with ❤️")
+    st.caption("v3.0.0 · Made with ❤️")
 
 # ============================================================================
 # HEADER
@@ -1046,9 +1194,11 @@ st.markdown("""
 <div class="main-header">
     <div class="main-title">🕵️ SUTRA-X</div>
     <div class="main-subtitle">Smart Unified Threat & Relationship Analytics</div>
-    <div style="margin-top: 0.5rem; display: flex; gap: 10px; flex-wrap: wrap;">
+    <div class="tagline">"From fragmented evidence to actionable intelligence"</div>
+    <div style="margin-top: 0.8rem; display: flex; gap: 10px; flex-wrap: wrap;">
         <span class="status-badge status-info">🏆 SIH 2026</span>
         <span class="status-badge status-info">AI-Powered Criminal Network Analysis</span>
+        <span class="status-badge status-info">Evidence-Based Intelligence</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -1061,11 +1211,20 @@ def render_dashboard():
     G = st.session_state.graph
     metrics = analyze_network(G)
     
-    st.markdown("### 📊 Command Center")
-    st.caption("Real-time intelligence dashboard")
+    st.markdown("""
+    <div class="section-title">📊 Command Center</div>
+    <div class="section-subtitle">Real-time intelligence dashboard · Monitor your investigation network</div>
+    """, unsafe_allow_html=True)
     
     if not st.session_state.data_loaded or G is None:
-        st.info("👈 Click 'Generate Sample Data' in the sidebar to get started")
+        st.info("👈 Click **'Generate Sample Data'** in the sidebar to create your first criminal network.")
+        st.markdown("""
+        <div style="background: linear-gradient(145deg, #1a1a2e, #1f1f3a); padding: 2rem; border-radius: 14px; border: 1px dashed #2a2a4e; text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 0.5rem;">🕵️</div>
+            <p style="color: #94a3b8; font-size: 1.1rem;">Ready to investigate? Generate sample data to get started.</p>
+            <p style="color: #64748b; font-size: 0.85rem;">The data will include persons, phones, accounts, cases, and connections.</p>
+        </div>
+        """, unsafe_allow_html=True)
         return
     
     col1, col2, col3, col4 = st.columns(4)
@@ -1075,7 +1234,7 @@ def render_dashboard():
         <div class="metric-card metric-info">
             <div class="icon">👥</div>
             <div class="value">{metrics['total_nodes'] if metrics else 0}</div>
-            <div class="label">Total Entities</div>
+            <div class="label">Entities in Network</div>
         </div>
         """, unsafe_allow_html=True)
     
@@ -1094,7 +1253,7 @@ def render_dashboard():
         <div class="metric-card metric-critical">
             <div class="icon">🚨</div>
             <div class="value">{high_priority}</div>
-            <div class="label">Priority Leads</div>
+            <div class="label">High Priority Leads</div>
         </div>
         """, unsafe_allow_html=True)
     
@@ -1110,7 +1269,10 @@ def render_dashboard():
     
     st.markdown("---")
     
-    st.markdown("### 🚨 Priority Investigation Leads")
+    st.markdown("""
+    <div class="section-title">🚨 Priority Investigation Leads</div>
+    <div class="section-subtitle">Entities requiring immediate attention based on network analysis</div>
+    """, unsafe_allow_html=True)
     
     if metrics and metrics['priority_entities']:
         for entity in metrics['priority_entities'][:5]:
@@ -1123,7 +1285,7 @@ def render_dashboard():
                 st.markdown(f"""
                 <div class="entity-card">
                     <strong>🔍 {entity['id']}</strong>
-                    <br><span style="color: #94a3b8; font-size: 0.8rem;">{entity['type']} | {entity['name']}</span>
+                    <br><span class="entity-name">{entity['type']} · {entity['name']}</span>
                 </div>
                 """, unsafe_allow_html=True)
             with col2:
@@ -1133,26 +1295,32 @@ def render_dashboard():
             
             st.markdown("---")
     else:
-        st.info("No priority leads found")
+        st.info("No priority leads found. Generate more data or analyze the network.")
 
 # ============================================================================
-# NETWORK GRAPH
+# NETWORK GRAPH - FIXED
 # ============================================================================
 
 def render_network_graph():
     G = st.session_state.graph
     node_list = get_node_list(G)
     
-    st.markdown("### 🌐 Network Graph")
-    st.caption("Interactive network visualization")
+    st.markdown("""
+    <div class="section-title">🌐 Network Graph</div>
+    <div class="section-subtitle">Interactive visualization of criminal relationships</div>
+    """, unsafe_allow_html=True)
     
     if not st.session_state.data_loaded or G is None:
-        st.info("👈 Click 'Generate Sample Data' in the sidebar to get started")
+        st.info("👈 Generate sample data first to visualize the network.")
+        return
+    
+    if len(node_list) == 0:
+        st.warning("⚠️ No entities found in the network. Please regenerate data.")
         return
     
     if PLOTLY_AVAILABLE and NETWORKX_AVAILABLE:
         try:
-            st.info("💡 Hover over nodes for details. Drag to explore.")
+            st.info("💡 Hover over nodes for details. Drag to explore the network.")
             
             pos = nx.spring_layout(G, k=0.5, iterations=50)
             
@@ -1180,7 +1348,9 @@ def render_network_graph():
                 'PERSON': '#FF6B6B',
                 'PHONE': '#4ECDC4', 
                 'ACCOUNT': '#45B7D1',
+                'VEHICLE': '#96CEB4',
                 'CASE': '#FF9FF3',
+                'LOCATION': '#FFEAA7',
                 'UNKNOWN': '#6B7280'
             }
             
@@ -1195,7 +1365,7 @@ def render_network_graph():
                     name = attrs.get('name', attrs.get('number', ''))
                     node_text.append(f"<b>{node}</b><br>Type: {node_type}<br>Name: {name}<br>Degree: {degree}")
                     node_color.append(color_map.get(node_type, '#6B7280'))
-                    node_size.append(10 + degree * 2)
+                    node_size.append(12 + degree * 3)
                 except:
                     continue
             
@@ -1222,18 +1392,36 @@ def render_network_graph():
                     plot_bgcolor='#0e1117',
                     paper_bgcolor='#0e1117',
                     font=dict(color='#e2e8f0'),
-                    height=600,
+                    height=650,
                     margin=dict(l=0, r=0, t=40, b=0)
                 )
             )
             
             st.plotly_chart(fig, use_container_width=True)
             
+            # Legend
+            st.markdown("""
+            <div style="background: linear-gradient(145deg, #1a1a2e, #1f1f3a); padding: 1rem 1.2rem; border-radius: 12px; margin-top: 0.5rem; border: 1px solid #2a2a4e;">
+                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                    <div><span style="display: inline-block; width: 14px; height: 14px; background: #FF6B6B; border-radius: 50%;"></span> Person</div>
+                    <div><span style="display: inline-block; width: 14px; height: 14px; background: #4ECDC4; border-radius: 50%;"></span> Phone</div>
+                    <div><span style="display: inline-block; width: 14px; height: 14px; background: #45B7D1; border-radius: 50%;"></span> Account</div>
+                    <div><span style="display: inline-block; width: 14px; height: 14px; background: #96CEB4; border-radius: 50%;"></span> Vehicle</div>
+                    <div><span style="display: inline-block; width: 14px; height: 14px; background: #FF9FF3; border-radius: 50%;"></span> Case</div>
+                    <div><span style="display: inline-block; width: 14px; height: 14px; background: #FFEAA7; border-radius: 50%;"></span> Location</div>
+                </div>
+                <div style="margin-top: 0.5rem; color: #64748b; font-size: 0.75rem;">
+                    💡 Larger circles indicate higher connectivity (degree)
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
         except Exception as e:
-            st.error(f"Error: {str(e)}")
+            st.error(f"Error rendering graph: {str(e)}")
             _show_network_data(G, node_list)
     else:
-        st.warning("Install plotly and networkx for interactive visualization.")
+        st.warning("⚠️ Plotly or NetworkX not available. Showing data view.")
+        st.info("💡 To enable interactive graphs: `pip install plotly networkx`")
         _show_network_data(G, node_list)
 
 def _show_network_data(G, node_list):
@@ -1257,15 +1445,17 @@ def render_entity_profile():
     G = st.session_state.graph
     node_list = get_node_list(G)
     
-    st.markdown("### 👤 Entity Intelligence")
-    st.caption("Deep dive into entity details")
+    st.markdown("""
+    <div class="section-title">👤 Entity Intelligence</div>
+    <div class="section-subtitle">Deep dive into entity details, connections, and evidence</div>
+    """, unsafe_allow_html=True)
     
     if not st.session_state.data_loaded or G is None:
-        st.info("👈 Click 'Generate Sample Data' in the sidebar to get started")
+        st.info("👈 Generate sample data first to explore entities.")
         return
     
     if not node_list:
-        st.warning("No entities in the network.")
+        st.warning("No entities in the network. Try regenerating data.")
         return
     
     if st.session_state.selected_entity and st.session_state.selected_entity in node_list:
@@ -1288,8 +1478,8 @@ def render_entity_profile():
     
     with col1:
         st.markdown(f"""
-        <div style="background: #1a1a2e; padding: 1.5rem; border-radius: 15px; border: 1px solid #2a2a4e;">
-            <h2 style="color: #ffffff; font-size: 1.5rem;">📋 {entity_id}</h2>
+        <div style="background: linear-gradient(145deg, #1a1a2e, #1f1f3a); padding: 1.5rem; border-radius: 14px; border: 1px solid #2a2a4e;">
+            <h2 style="color: #ffffff; font-size: 1.5rem; margin: 0;">📋 {entity_id}</h2>
         """, unsafe_allow_html=True)
         
         attrs = get_node_attributes(G, entity_id)
@@ -1297,11 +1487,11 @@ def render_entity_profile():
         st.markdown(f"**Type:** {entity_type}")
         
         if details.get('priority') == 'HIGH':
-            st.markdown(f'<span class="status-badge status-high">🔴 HIGH</span>', unsafe_allow_html=True)
+            st.markdown(f'<span class="status-badge status-high">🔴 HIGH PRIORITY</span>', unsafe_allow_html=True)
         elif details.get('priority') == 'MEDIUM':
-            st.markdown(f'<span class="status-badge status-medium">🟡 MEDIUM</span>', unsafe_allow_html=True)
+            st.markdown(f'<span class="status-badge status-medium">🟡 MEDIUM PRIORITY</span>', unsafe_allow_html=True)
         else:
-            st.markdown(f'<span class="status-badge status-low">🟢 LOW</span>', unsafe_allow_html=True)
+            st.markdown(f'<span class="status-badge status-low">🟢 LOW PRIORITY</span>', unsafe_allow_html=True)
         
         st.markdown(f"**Priority Score:** {details['priority_score']:.1%}")
         
@@ -1318,7 +1508,7 @@ def render_entity_profile():
             st.markdown(f"""
             <div class="entity-card">
                 <strong>→ {conn['entity_id']}</strong>
-                <br><span style="color: #94a3b8; font-size: 0.85rem;">Relation: {conn['relation']}</span>
+                <br><span class="entity-name">Relation: {conn['relation']}</span>
             </div>
             """, unsafe_allow_html=True)
         
@@ -1326,25 +1516,23 @@ def render_entity_profile():
     
     with col2:
         st.markdown(f"""
-        <div style="background: #1a1a2e; padding: 1.5rem; border-radius: 15px; border: 1px solid #2a2a4e;">
-            <h3 style="color: #ffffff; font-size: 1.2rem;">📊 Quick Stats</h3>
-            <div style="margin-top: 1rem;">
-                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #2a2a4e;">
-                    <span style="color: #94a3b8;">Direct Connections</span>
-                    <span style="color: #ffffff; font-weight: 700;">{len(details['connections'])}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #2a2a4e;">
-                    <span style="color: #94a3b8;">Network Degree</span>
-                    <span style="color: #ffffff; font-weight: 700;">{get_degree(G, entity_id)}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #2a2a4e;">
-                    <span style="color: #94a3b8;">Priority Score</span>
-                    <span style="color: #ffffff; font-weight: 700;">{details['priority_score']:.1%}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;">
-                    <span style="color: #94a3b8;">Evidence Count</span>
-                    <span style="color: #ffffff; font-weight: 700;">{len(details.get('evidence', []))}</span>
-                </div>
+        <div class="quick-stats">
+            <h3 style="color: #ffffff; font-size: 1.2rem; margin: 0 0 0.8rem 0;">📊 Quick Stats</h3>
+            <div class="stat-item">
+                <span class="stat-label">Direct Connections</span>
+                <span class="stat-value">{len(details['connections'])}</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Network Degree</span>
+                <span class="stat-value">{get_degree(G, entity_id)}</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Priority Score</span>
+                <span class="stat-value">{details['priority_score']:.1%}</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Evidence Count</span>
+                <span class="stat-value">{len(details.get('evidence', []))}</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -1354,11 +1542,13 @@ def render_entity_profile():
 # ============================================================================
 
 def render_timeline():
-    st.markdown("### ⏱️ Investigation Timeline")
-    st.caption("Track network evolution")
+    st.markdown("""
+    <div class="section-title">⏱️ Investigation Timeline</div>
+    <div class="section-subtitle">Track network evolution over time</div>
+    """, unsafe_allow_html=True)
     
     if not st.session_state.data_loaded:
-        st.info("👈 Click 'Generate Sample Data' in the sidebar to get started")
+        st.info("👈 Generate sample data first.")
         return
     
     st.info("📈 Timeline view showing network evolution")
@@ -1418,11 +1608,13 @@ def render_cross_case():
     G = st.session_state.graph
     node_list = get_node_list(G)
     
-    st.markdown("### 🔗 Cross-Case Discovery")
-    st.caption("Uncover hidden connections between cases")
+    st.markdown("""
+    <div class="section-title">🔗 Cross-Case Discovery</div>
+    <div class="section-subtitle">Uncover hidden connections between cases</div>
+    """, unsafe_allow_html=True)
     
     if not st.session_state.data_loaded or G is None:
-        st.info("👈 Click 'Generate Sample Data' in the sidebar to get started")
+        st.info("👈 Generate sample data first.")
         return
     
     st.info("🔍 Discovering connections between cases...")
@@ -1479,11 +1671,13 @@ def render_ai_copilot():
     G = st.session_state.graph
     node_list = get_node_list(G)
     
-    st.markdown("### 🤖 AI Copilot")
-    st.caption("Real AI-powered investigation assistant")
+    st.markdown("""
+    <div class="section-title">🤖 AI Copilot</div>
+    <div class="section-subtitle">AI-powered investigation assistant</div>
+    """, unsafe_allow_html=True)
     
     if not st.session_state.data_loaded or G is None:
-        st.info("👈 Click 'Generate Sample Data' in the sidebar to get started")
+        st.info("👈 Generate sample data first.")
         return
     
     if not has_permission("use_ai"):
@@ -1493,23 +1687,11 @@ def render_ai_copilot():
     # API Status
     st.markdown("#### 🤖 AI Status")
     if GROQ_WORKING:
-        st.success(f"✅ Real Groq AI Connected · `{GROQ_MODEL}`")
+        st.success(f"✅ Real AI · {GROQ_MODEL}")
     elif GROQ_API_KEY:
-        st.warning(f"⚠️ Groq requires verification · {ENGINE_MODE}")
-        if GROQ_LAST_ERROR:
-            st.caption(str(GROQ_LAST_ERROR)[:300])
+        st.warning(f"⚠️ {ENGINE_MODE}")
     else:
-        st.warning("⚠️ Groq AI is not configured — Local fallback is active.")
-        st.caption("Set GROQ_API_KEY in .streamlit/secrets.toml")
-    
-    # Test button in AI page
-    if st.button("🔄 Test Groq Connection", key="test_groq_ai", use_container_width=True):
-        with st.spinner("Testing Groq connection..."):
-            if test_groq_connection():
-                st.success(f"✅ Groq connected! Model: {GROQ_MODEL}")
-            else:
-                st.error(f"❌ Groq connection failed: {GROQ_LAST_ERROR}")
-        st.rerun()
+        st.warning("⚠️ No API key - using fallback")
     
     st.info("🧠 Ask questions about your investigation")
     
@@ -1560,7 +1742,10 @@ def render_ai_copilot():
             }
             
             try:
-                context['total_edges'] = G.number_of_edges()
+                if NETWORKX_AVAILABLE:
+                    context['total_edges'] = G.number_of_edges()
+                else:
+                    context['total_edges'] = len(G.edges)
             except:
                 context['total_edges'] = 0
             
@@ -1584,7 +1769,7 @@ def render_ai_copilot():
             if result.get('using_api', False):
                 st.markdown(f"""
                 <div class="rag-response" style="border-left-color: #10b981;">
-                    <strong>🤖 AI Response (Groq):</strong>
+                    <strong>🤖 AI Response</strong>
                     <p style="margin-top: 0.5rem; white-space: pre-wrap;">{result['response']}</p>
                     <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 0.5rem;">
                         <span style="color: #94a3b8; font-size: 0.7rem;">Sources:</span>
@@ -1596,18 +1781,12 @@ def render_ai_copilot():
             else:
                 st.markdown(f"""
                 <div class="rag-response" style="border-left-color: #f59e0b;">
-                    <strong>💡 Response (Fallback):</strong>
+                    <strong>💡 Response</strong>
                     <p style="margin-top: 0.5rem; white-space: pre-wrap;">{result['response']}</p>
                     <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 0.5rem;">
                         <span style="color: #94a3b8; font-size: 0.7rem;">Sources:</span>
                         {''.join([f'<span style="background: #2a2a4e; color: #667eea; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">{s}</span>' for s in result['sources']])}
                         <span style="background: #f59e0b20; color: #f59e0b; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">⚠️ Fallback</span>
-                    </div>
-                    <div style="margin-top: 0.5rem; padding: 0.5rem; background: #2a2a4e; border-radius: 8px; font-size: 0.85rem; color: #94a3b8;">
-                        💡 <strong>To enable real AI:</strong><br>
-                        1. Create .streamlit/secrets.toml with GROQ_API_KEY<br>
-                        2. Get free key from console.groq.com<br>
-                        3. Click "Test Groq Connection" button above
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -1622,9 +1801,9 @@ def render_ai_copilot():
             
             entities_with_degree.sort(key=lambda x: x[1], reverse=True)
             for node, degree, name in entities_with_degree[:5]:
-                st.markdown(f"- **{node}** ({name}) - Degree: {degree}")
+                st.markdown(f"- **{node}** ({name}) · Degree: {degree}")
             
-            st.warning("⚠️ This is an AI-generated analysis. All findings should be verified.")
+            st.warning("⚠️ AI-generated analysis. Verify findings manually.")
             
             st.session_state.ai_query = ""
 
@@ -1633,11 +1812,13 @@ def render_ai_copilot():
 # ============================================================================
 
 def render_alerts():
-    st.markdown("### 🔔 Alerts & Emergency")
-    st.caption("Real-time critical alerts")
+    st.markdown("""
+    <div class="section-title">🔔 Alerts & Emergency</div>
+    <div class="section-subtitle">Real-time critical alerts and notifications</div>
+    """, unsafe_allow_html=True)
     
     if not st.session_state.data_loaded:
-        st.info("👈 Click 'Generate Sample Data' in the sidebar to get started")
+        st.info("👈 Generate sample data first.")
         return
     
     col1, col2, col3 = st.columns(3)
@@ -1712,7 +1893,7 @@ def render_alerts():
             <div class="{card_class}">
                 <div style="display: flex; justify-content: space-between;">
                     <div>
-                        <span style="font-size: 1.2rem; font-weight: 700;">{icon} {alert['title']}</span>
+                        <span style="font-size: 1.1rem; font-weight: 700;">{icon} {alert['title']}</span>
                         <br>
                         <span style="opacity: 0.8;">{alert['description']}</span>
                     </div>
@@ -1736,11 +1917,13 @@ def render_simulation():
     G = st.session_state.graph
     node_list = get_node_list(G)
     
-    st.markdown("### 🎯 What-If Simulation")
-    st.caption("Simulate network disruption")
+    st.markdown("""
+    <div class="section-title">🎯 What-If Simulation</div>
+    <div class="section-subtitle">Simulate network disruption scenarios</div>
+    """, unsafe_allow_html=True)
     
     if not st.session_state.data_loaded or G is None:
-        st.info("👈 Click 'Generate Sample Data' in the sidebar to get started")
+        st.info("👈 Generate sample data first.")
         return
     
     if not st.session_state.authenticated:
@@ -1808,11 +1991,13 @@ def render_heatmap():
     G = st.session_state.graph
     node_list = get_node_list(G)
     
-    st.markdown("### 🗺️ Geographic Heatmap")
-    st.caption("Visualize crime hotspots")
+    st.markdown("""
+    <div class="section-title">🗺️ Geographic Heatmap</div>
+    <div class="section-subtitle">Visualize crime hotspots and entity locations</div>
+    """, unsafe_allow_html=True)
     
     if not st.session_state.data_loaded or G is None:
-        st.info("👈 Click 'Generate Sample Data' in the sidebar to get started")
+        st.info("👈 Generate sample data first.")
         return
     
     heatmap_data = []
@@ -1853,11 +2038,13 @@ def render_heatmap():
 # ============================================================================
 
 def render_export():
-    st.markdown("### 📄 Export Reports")
-    st.caption("Download investigation reports")
+    st.markdown("""
+    <div class="section-title">📄 Export Reports</div>
+    <div class="section-subtitle">Download investigation reports</div>
+    """, unsafe_allow_html=True)
     
     if not st.session_state.data_loaded:
-        st.info("👈 Click 'Generate Sample Data' in the sidebar to get started")
+        st.info("👈 Generate sample data first.")
         return
     
     if not st.session_state.authenticated:
@@ -1933,8 +2120,10 @@ def render_export():
 # ============================================================================
 
 def render_security():
-    st.markdown("### 🔐 Security & Access Control")
-    st.caption("Role-Based Access Control")
+    st.markdown("""
+    <div class="section-title">🔐 Security & Access Control</div>
+    <div class="section-subtitle">Role-Based Access Control and Audit Logs</div>
+    """, unsafe_allow_html=True)
     
     if not st.session_state.authenticated:
         st.warning("🔒 Please login to access this feature.")
@@ -1944,18 +2133,18 @@ def render_security():
     
     with col1:
         st.markdown(f"""
-        <div style="background: #1a1a2e; padding: 1.5rem; border-radius: 15px; border: 1px solid #2a2a4e;">
+        <div style="background: linear-gradient(145deg, #1a1a2e, #1f1f3a); padding: 1.5rem; border-radius: 14px; border: 1px solid #2a2a4e;">
             <h3 style="color: #ffffff; font-size: 1.2rem;">🔐 Role-Based Access Control</h3>
             <div style="margin-top: 1rem;">
-                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #2a2a4e;">
+                <div class="stat-item">
                     <span style="color: #94a3b8;">Current User</span>
                     <span style="color: #ffffff; font-weight: 700;">{st.session_state.current_user}</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #2a2a4e;">
+                <div class="stat-item">
                     <span style="color: #94a3b8;">Current Role</span>
                     <span style="color: #ffffff; font-weight: 700;">{st.session_state.user_role.upper()}</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;">
+                <div class="stat-item" style="border-bottom: none;">
                     <span style="color: #94a3b8;">Permissions</span>
                     <span style="font-size: 0.85rem; color: #667eea;">{', '.join(ROLE_PERMISSIONS.get(st.session_state.user_role, []))}</span>
                 </div>
@@ -1965,14 +2154,14 @@ def render_security():
     
     with col2:
         st.markdown(f"""
-        <div style="background: #1a1a2e; padding: 1.5rem; border-radius: 15px; border: 1px solid #2a2a4e;">
+        <div style="background: linear-gradient(145deg, #1a1a2e, #1f1f3a); padding: 1.5rem; border-radius: 14px; border: 1px solid #2a2a4e;">
             <h3 style="color: #ffffff; font-size: 1.2rem;">📶 Offline Mode</h3>
             <div style="margin-top: 1rem;">
-                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #2a2a4e;">
+                <div class="stat-item">
                     <span style="color: #94a3b8;">Status</span>
                     <span style="color: #ffffff; font-weight: 700;">{'📴 Offline' if st.session_state.offline_mode else '📶 Online'}</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;">
+                <div class="stat-item" style="border-bottom: none;">
                     <span style="color: #94a3b8;">Description</span>
                     <span style="font-size: 0.8rem; color: #94a3b8;">Work offline, sync when online</span>
                 </div>
@@ -2038,6 +2227,8 @@ def main():
             <span style="color: #94a3b8;">🕵️ SUTRA-X v3.0.0</span>
             <span style="color: #64748b;">|</span>
             <span style="color: #94a3b8;">Made with ❤️ for SIH 2026</span>
+            <span style="color: #64748b;">|</span>
+            <span style="color: #475569;">From Evidence to Intelligence</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
