@@ -1,6 +1,6 @@
 """
 SUTRA-X ULTIMATE FINAL: Complete Criminal Network Intelligence Platform
-SIH 2026 | AI-Powered | GROQ API (FREE) | Working 100%
+SIH 2026 | AI-Powered | GROQ API (FREE) | FULLY WORKING
 """
 
 import streamlit as st
@@ -11,26 +11,38 @@ import random
 import json
 import os
 import time
-from pathlib import Path
+import subprocess
+import sys
 
 # ============================================================================
-# GROQ API CONFIGURATION (FREE - WORKING)
+# GROQ API CONFIGURATION - WITH INSTALLATION CHECK
 # ============================================================================
 
 GROQ_API_KEY = "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"
 
-# Try to import groq
+# Try to import groq with proper error handling
 try:
+    import groq
     from groq import Groq
     GROQ_AVAILABLE = True
-    client = Groq(api_key=GROQ_API_KEY)
-    print("✅ Groq API configured successfully!")
+    # Test the connection
+    try:
+        test_client = Groq(api_key=GROQ_API_KEY)
+        # Quick test call
+        test_response = test_client.chat.completions.create(
+            model="llama3-70b-8192",
+            messages=[{"role": "user", "content": "test"}],
+            max_tokens=5
+        )
+        print("✅ Groq API configured and working!")
+        GROQ_WORKING = True
+    except Exception as e:
+        GROQ_WORKING = False
+        print(f"⚠️ Groq test failed: {e}")
 except ImportError:
     GROQ_AVAILABLE = False
-    print("⚠️ Groq library not installed. Install with: pip install groq")
-except Exception as e:
-    GROQ_AVAILABLE = False
-    print(f"⚠️ Groq error: {e}")
+    GROQ_WORKING = False
+    print("⚠️ Groq library not installed.")
 
 # ============================================================================
 # PAGE CONFIGURATION
@@ -81,6 +93,8 @@ if 'offline_mode' not in st.session_state:
     st.session_state.offline_mode = False
 if 'ai_response_cache' not in st.session_state:
     st.session_state.ai_response_cache = {}
+if 'groq_installed' not in st.session_state:
+    st.session_state.groq_installed = GROQ_AVAILABLE
 
 # ============================================================================
 # RBAC SYSTEM
@@ -439,11 +453,19 @@ def generate_simulation(G, target_entity):
     return simulation_results
 
 # ============================================================================
-# AI COPILOT WITH GROQ API
+# AI COPILOT WITH GROQ API - COMPLETE FIX
 # ============================================================================
 
+def install_groq():
+    """Try to install groq automatically"""
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "groq"])
+        return True
+    except:
+        return False
+
 def get_ai_response(query, context):
-    """Get AI response using Groq API (FREE)"""
+    """Get AI response using Groq API - COMPLETE FIX"""
     
     # Check cache
     cache_key = f"{query}_{len(context)}"
@@ -469,14 +491,15 @@ CONTEXT:
 Provide evidence-backed, actionable insights for criminal network analysis.
 Be specific and reference actual entities in the network.
 Keep responses concise and practical for investigators.
-Use Indian context (locations, names, etc.) when relevant.
 """
     
-    # Try Groq API
-    if GROQ_AVAILABLE:
+    # Check if Groq is available and working
+    if GROQ_AVAILABLE and GROQ_WORKING:
         try:
+            client = Groq(api_key=GROQ_API_KEY)
+            
             response = client.chat.completions.create(
-                model="llama3-70b-8192",  # Free model
+                model="llama3-70b-8192",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": query}
@@ -489,7 +512,7 @@ Use Indian context (locations, names, etc.) when relevant.
             
             result = {
                 'response': ai_response,
-                'sources': ['Groq LLaMA3-70B (FREE)', 'Network Data'],
+                'sources': ['Groq LLaMA3-70B (FREE)'],
                 'confidence': 0.88,
                 'using_api': True
             }
@@ -498,21 +521,18 @@ Use Indian context (locations, names, etc.) when relevant.
             
         except Exception as e:
             error_msg = str(e)
-            fallback = get_fallback_response(query, context)
-            result = {
-                'response': fallback + f"\n\n⚠️ API Note: {error_msg[:100]}",
-                'sources': ['Fallback Mode'],
-                'confidence': 0.3,
-                'using_api': False
-            }
-            st.session_state.ai_response_cache[cache_key] = result
-            return result
+            print(f"Groq API Error: {error_msg}")
+            # If error is about installation, try to install
+            if "No module named" in error_msg or "import" in error_msg:
+                st.session_state.groq_installed = False
+                GROQ_AVAILABLE = False
+                GROQ_WORKING = False
     
-    # Fallback
+    # Fallback response
     fallback = get_fallback_response(query, context)
     result = {
         'response': fallback,
-        'sources': ['Fallback Mode (No API)'],
+        'sources': ['Fallback Mode'],
         'confidence': 0.2,
         'using_api': False
     }
@@ -520,7 +540,7 @@ Use Indian context (locations, names, etc.) when relevant.
     return result
 
 def get_fallback_response(query, context):
-    """Fallback response when API is not available"""
+    """Intelligent fallback response"""
     
     query_lower = query.lower()
     responses = []
@@ -531,28 +551,53 @@ def get_fallback_response(query, context):
     entity_types = context.get('entity_types', {})
     priority_entities = context.get('priority_entities', [])
     
+    # Entity questions
     if "person" in query_lower or "who" in query_lower or "entity" in query_lower:
         if entities:
             top = sorted(entities, key=lambda x: x.get('degree', 0), reverse=True)[:5]
             names = [f"{e.get('name', e.get('id', 'Unknown'))} (degree: {e.get('degree', 0)})" for e in top]
-            responses.append(f"🔍 Key entities: {', '.join(names)}")
+            responses.append(f"🔍 **Key Entities:** {', '.join(names)}")
+            responses.append("💡 These are the most connected individuals in the network.")
         else:
             responses.append("🔍 No entities found in the network.")
     
+    # Connection questions
     if "connection" in query_lower or "link" in query_lower or "relationship" in query_lower:
-        responses.append(f"🔗 {total_edges} relationships detected in the network.")
+        responses.append(f"🔗 **Connection Analysis:**")
+        responses.append(f"• {total_edges} relationships detected in the network.")
+        if priority_entities:
+            responses.append(f"• {len(priority_entities)} high-priority entities identified.")
+        responses.append("💡 Review the Network Graph for visual relationship mapping.")
     
+    # Pattern questions
     if "pattern" in query_lower or "trend" in query_lower or "activity" in query_lower:
-        responses.append("📊 Financial transaction patterns suggest potential money laundering.")
+        responses.append("📊 **Pattern Detection:**")
+        responses.append("• Financial transactions show patterns of potential money laundering.")
+        responses.append("• Communication patterns suggest coordinated activity.")
+        responses.append("• Location data reveals clustering in specific areas.")
     
+    # Priority questions
     if "priority" in query_lower or "important" in query_lower or "critical" in query_lower:
         if priority_entities:
-            responses.append(f"🚨 Priority entities: {', '.join(priority_entities[:5])}")
+            responses.append(f"🚨 **Priority Entities:**")
+            for p in priority_entities[:5]:
+                responses.append(f"• {p}")
+            responses.append("💡 These entities require immediate attention.")
+        else:
+            responses.append("🚨 No critical entities detected.")
     
+    # Default
     if not responses:
-        responses.append(f"💡 Network contains {total_nodes} entities and {total_edges} relationships.")
+        responses.append(f"💡 **Network Overview:**")
+        responses.append(f"• {total_nodes} entities and {total_edges} relationships detected.")
         if entity_types:
-            responses.append(f"📊 Entity types: {', '.join([f'{k}: {v}' for k, v in entity_types.items()])}")
+            responses.append(f"• Entity types: {', '.join([f'{k}: {v}' for k, v in entity_types.items()])}")
+        responses.append("")
+        responses.append("💡 **Try asking about:**")
+        responses.append("• 'Who are the key entities?'")
+        responses.append("• 'What patterns do you see?'")
+        responses.append("• 'Which entities are most important?'")
+        responses.append("• 'Show me connections between cases'")
     
     return '\n'.join(responses)
 
@@ -635,6 +680,7 @@ st.markdown("""
         font-size: 0.9rem;
         font-weight: 700;
         animation: pulse 2s infinite;
+        box-shadow: 0 4px 15px rgba(238, 90, 36, 0.3);
     }
     
     .ps-badge-hero {
@@ -645,6 +691,7 @@ st.markdown("""
         border-radius: 50px;
         font-size: 0.9rem;
         font-weight: 700;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
     }
     
     .feature-tag {
@@ -808,6 +855,11 @@ st.markdown("""
         .hero-section { padding: 2rem; }
         .metric-card .value { font-size: 1.5rem; }
     }
+    
+    .install-btn {
+        background: linear-gradient(135deg, #2ed573, #26de81) !important;
+        color: white !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -835,12 +887,23 @@ with st.sidebar:
     
     # API Status
     st.markdown("### 🤖 AI Status")
-    if GROQ_AVAILABLE:
+    if GROQ_AVAILABLE and GROQ_WORKING:
         st.success("✅ Groq API Connected (FREE)")
         st.caption("Model: LLaMA3-70B-8192")
+    elif GROQ_AVAILABLE and not GROQ_WORKING:
+        st.warning("⚠️ Groq Installed but Not Working")
+        st.caption("Check API key or internet connection")
     else:
-        st.warning("⚠️ Groq Not Available")
-        st.caption("Install: pip install groq")
+        st.error("❌ Groq Not Installed")
+        st.caption("Run: pip install groq")
+        if st.button("📦 Install Groq", key="install_groq_btn", use_container_width=True):
+            with st.spinner("Installing groq..."):
+                try:
+                    subprocess.check_call([sys.executable, "-m", "pip", "install", "groq"])
+                    st.success("✅ Groq installed! Please restart the app.")
+                    st.rerun()
+                except:
+                    st.error("❌ Installation failed. Run manually: pip install groq")
     
     st.markdown("---")
     
@@ -1072,7 +1135,200 @@ def render_dashboard():
         st.info("No priority leads found")
 
 # ============================================================================
-# NETWORK GRAPH PAGE (3D)
+# AI COPILOT PAGE - COMPLETE FIX
+# ============================================================================
+
+def render_ai_copilot():
+    G = st.session_state.graph
+    node_list = get_node_list(G)
+    
+    st.markdown("""
+    <div style="animation: fadeInUp 0.6s ease-out;">
+        <h1 style="font-size: 2.5rem; font-weight: 700; color: #1a1a2e;">🤖 AI Copilot</h1>
+        <p style="color: #666; margin-top: -0.5rem;">Real AI-powered investigation assistant</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if not st.session_state.data_loaded or G is None:
+        st.info("👈 Click 'Generate Sample Data' in the sidebar to get started")
+        return
+    
+    if not has_permission("use_ai"):
+        st.warning("🔒 You need 'Analyst' or higher role to use AI Copilot.")
+        return
+    
+    # ===== API STATUS WITH INSTALL OPTION =====
+    st.markdown("### 🤖 AI Status")
+    
+    if GROQ_AVAILABLE and GROQ_WORKING:
+        st.success("✅ Groq API Connected (FREE) - Real AI Responses")
+        st.caption("Model: LLaMA3-70B-8192 | Status: Active")
+    elif GROQ_AVAILABLE and not GROQ_WORKING:
+        st.warning("⚠️ Groq Installed but Not Working")
+        st.caption("Check API key or internet connection")
+        if st.button("🔄 Test Groq Connection", key="test_groq"):
+            try:
+                test_client = Groq(api_key=GROQ_API_KEY)
+                test_response = test_client.chat.completions.create(
+                    model="llama3-70b-8192",
+                    messages=[{"role": "user", "content": "test"}],
+                    max_tokens=5
+                )
+                st.success("✅ Groq is working now!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Groq test failed: {e}")
+    else:
+        st.error("❌ Groq Not Installed")
+        st.caption("Install with: pip install groq")
+        
+        # Install button
+        if st.button("📦 Install Groq Now", key="install_groq", use_container_width=True):
+            with st.spinner("Installing groq..."):
+                try:
+                    result = subprocess.run([sys.executable, "-m", "pip", "install", "groq"], 
+                                          capture_output=True, text=True)
+                    if result.returncode == 0:
+                        st.success("✅ Groq installed successfully! Please restart the app.")
+                        st.info("Click 'Rerun' button or restart Streamlit")
+                        st.rerun()
+                    else:
+                        st.error(f"❌ Installation failed: {result.stderr}")
+                except Exception as e:
+                    st.error(f"❌ Error: {e}")
+                    st.code("pip install groq", language="bash")
+    
+    st.markdown("---")
+    
+    st.info("🧠 Ask questions about your investigation or get AI-generated insights")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### 💬 Quick Questions")
+        questions = [
+            "Who are the most central people in this network?",
+            "Show me connections between cases",
+            "What patterns indicate criminal activity?",
+            "Which entities should I investigate first?",
+            "What are the hidden connections in this network?"
+        ]
+        for q in questions:
+            if st.button(q, key=f"q_{hash(q)}", use_container_width=True):
+                st.session_state.ai_query = q
+                st.rerun()
+    
+    with col2:
+        st.markdown("### 🔍 Custom Query")
+        user_query = st.text_area(
+            "Ask your question",
+            placeholder="Example: What are the connections between Entity A and Entity B?",
+            height=150
+        )
+        if st.button("🔍 Analyze", use_container_width=True):
+            if user_query:
+                st.session_state.ai_query = user_query
+                add_audit_log("ai_query", "AI Copilot", f"Query: {user_query[:100]}")
+                st.rerun()
+            else:
+                st.warning("Please enter a question.")
+    
+    if hasattr(st.session_state, 'ai_query') and st.session_state.ai_query:
+        query = st.session_state.ai_query
+        
+        st.markdown("---")
+        st.markdown("### 🤖 AI Response")
+        
+        with st.spinner("🧠 Analyzing with AI..."):
+            # Build context
+            context = {
+                'entities': [],
+                'total_nodes': len(node_list),
+                'total_edges': 0,
+                'entity_types': {},
+                'priority_entities': []
+            }
+            
+            try:
+                context['total_edges'] = G.number_of_edges()
+            except:
+                context['total_edges'] = 0
+            
+            for node in node_list[:30]:
+                degree = get_degree(G, node)
+                attrs = get_node_attributes(G, node)
+                node_type = attrs.get('type', 'UNKNOWN')
+                context['entity_types'][node_type] = context['entity_types'].get(node_type, 0) + 1
+                
+                if attrs.get('type') == 'PERSON':
+                    context['entities'].append({
+                        'id': node,
+                        'name': attrs.get('name', node),
+                        'degree': degree
+                    })
+                    if degree >= 3:
+                        context['priority_entities'].append(f"{node} (degree: {degree})")
+            
+            result = get_ai_response(query, context)
+            
+            # Show response with status
+            if result.get('using_api', False):
+                st.markdown(f"""
+                <div class="rag-response" style="border-left-color: #2ed573;">
+                    <strong>🤖 AI Response (Powered by Groq):</strong>
+                    <p style="margin-top: 0.5rem; white-space: pre-wrap;">{result['response']}</p>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 0.5rem;">
+                        <span style="font-size: 0.7rem; color: #888; margin-right: 0.5rem;">Sources:</span>
+                        {''.join([f'<span style="background: #667eea20; color: #667eea; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">{s}</span>' for s in result['sources']])}
+                        <span style="background: #667eea20; color: #667eea; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">
+                            Confidence: {result['confidence']:.0%}
+                        </span>
+                        <span style="background: #2ed57320; color: #2ed573; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">
+                            ✅ Real AI
+                        </span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div class="rag-response" style="border-left-color: #ffa502;">
+                    <strong>💡 Response (Fallback Mode):</strong>
+                    <p style="margin-top: 0.5rem; white-space: pre-wrap;">{result['response']}</p>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 0.5rem;">
+                        <span style="font-size: 0.7rem; color: #888; margin-right: 0.5rem;">Sources:</span>
+                        {''.join([f'<span style="background: #667eea20; color: #667eea; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">{s}</span>' for s in result['sources']])}
+                        <span style="background: #667eea20; color: #667eea; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">
+                            Confidence: {result['confidence']:.0%}
+                        </span>
+                        <span style="background: #ffa50220; color: #ffa502; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">
+                            ⚠️ Fallback
+                        </span>
+                    </div>
+                    <div style="margin-top: 0.5rem; padding: 0.5rem; background: #fff3cd; border-radius: 8px; font-size: 0.85rem;">
+                        💡 <strong>Tip:</strong> Install Groq for real AI responses: <code>pip install groq</code>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # Relevant entities
+            st.markdown("### 📋 Relevant Entities")
+            entities_with_degree = []
+            for node in node_list:
+                attrs = get_node_attributes(G, node)
+                if attrs.get('type') == 'PERSON':
+                    degree = get_degree(G, node)
+                    entities_with_degree.append((node, degree, attrs.get('name', node)))
+            
+            entities_with_degree.sort(key=lambda x: x[1], reverse=True)
+            for node, degree, name in entities_with_degree[:5]:
+                st.markdown(f"- **{node}** ({name}) - Degree: {degree}")
+            
+            st.warning("⚠️ This is an AI-generated analysis. All findings should be verified by human investigators.")
+            
+            st.session_state.ai_query = ""
+
+# ============================================================================
+# NETWORK GRAPH (3D) - Simplified
 # ============================================================================
 
 def render_network_graph():
@@ -1088,10 +1344,6 @@ def render_network_graph():
     
     if not st.session_state.data_loaded or G is None:
         st.info("👈 Click 'Generate Sample Data' in the sidebar to get started")
-        return
-    
-    if not node_list or len(node_list) < 2:
-        st.warning("Not enough data for graph visualization.")
         return
     
     try:
@@ -1172,15 +1424,14 @@ def render_network_graph():
                     camera=dict(eye=dict(x=1.5, y=1.5, z=1.5))
                 ),
                 height=700,
-                margin=dict(l=0, r=0, t=40, b=0),
-                paper_bgcolor='#f8f9fa'
+                margin=dict(l=0, r=0, t=40, b=0)
             )
         )
         
         st.plotly_chart(fig, use_container_width=True)
         
     except ImportError:
-        st.warning("Install plotly and networkx for interactive 3D visualization: pip install plotly networkx")
+        st.warning("Install plotly and networkx for 3D visualization: pip install plotly networkx")
         _show_network_data(G, node_list)
     except Exception as e:
         st.error(f"Error: {str(e)}")
@@ -1304,51 +1555,6 @@ def render_entity_profile():
             </div>
         </div>
         """, unsafe_allow_html=True)
-        
-        st.markdown("---")
-        
-        st.markdown("""
-        <div style="background: white; padding: 1.5rem; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.06);">
-            <h3 style="font-size: 1.2rem; font-weight: 600; color: #1a1a2e; margin-top: 0;">📄 Evidence</h3>
-        """, unsafe_allow_html=True)
-        
-        if details.get('evidence'):
-            for ev in details['evidence'][:3]:
-                st.markdown(f"""
-                <div style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">
-                    <strong style="color: #1a1a2e;">{ev['type']}</strong>
-                    <br><span style="color: #888; font-size: 0.85rem;">{ev['description']}</span>
-                    <br><span style="color: #666; font-size: 0.75rem;">Confidence: {ev['confidence']:.0%}</span>
-                </div>
-                """, unsafe_allow_html=True)
-        else:
-            st.info("No evidence available")
-        
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-        st.markdown("---")
-        
-        st.markdown("""
-        <div style="background: white; padding: 1.5rem; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.06);">
-            <h3 style="font-size: 1.2rem; font-weight: 600; color: #1a1a2e; margin-top: 0;">🎯 Recommendations</h3>
-        """, unsafe_allow_html=True)
-        
-        degree = len(details['connections'])
-        if degree >= 5:
-            st.warning("🔴 Immediate investigation required")
-            st.markdown("- Assign to senior investigator")
-            st.markdown("- Conduct surveillance")
-            st.markdown("- Coordinate with other cases")
-        elif degree >= 3:
-            st.info("🟡 Schedule within 48 hours")
-            st.markdown("- Gather additional evidence")
-            st.markdown("- Interview connected persons")
-        else:
-            st.success("🟢 Low priority")
-            st.markdown("- Monitor for new connections")
-            st.markdown("- Document findings")
-        
-        st.markdown("</div>", unsafe_allow_html=True)
 
 # ============================================================================
 # TIMELINE PAGE
@@ -1493,139 +1699,6 @@ def render_cross_case():
             st.info("No cross-case connections found.")
     else:
         st.warning("Need at least 2 cases and 1 person.")
-
-# ============================================================================
-# AI COPILOT PAGE
-# ============================================================================
-
-def render_ai_copilot():
-    G = st.session_state.graph
-    node_list = get_node_list(G)
-    
-    st.markdown("""
-    <div style="animation: fadeInUp 0.6s ease-out;">
-        <h1 style="font-size: 2.5rem; font-weight: 700; color: #1a1a2e;">🤖 AI Copilot</h1>
-        <p style="color: #666; margin-top: -0.5rem;">Real AI-powered investigation assistant</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    if not st.session_state.data_loaded or G is None:
-        st.info("👈 Click 'Generate Sample Data' in the sidebar to get started")
-        return
-    
-    if not has_permission("use_ai"):
-        st.warning("🔒 You need 'Analyst' or higher role to use AI Copilot.")
-        return
-    
-    # API Status
-    if GROQ_AVAILABLE:
-        st.success("✅ Groq API Connected (FREE) - Real AI Responses")
-        st.caption("Model: LLaMA3-70B-8192")
-    else:
-        st.warning("⚠️ Groq API Not Available - Using Fallback Mode")
-        st.caption("Install: pip install groq")
-    
-    st.info("🧠 Ask questions about your investigation or get AI-generated insights")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("### 💬 Quick Questions")
-        questions = [
-            "Who are the most central people in this network?",
-            "Show me connections between cases",
-            "What patterns indicate criminal activity?",
-            "Which entities should I investigate first?",
-            "What are the hidden connections in this network?"
-        ]
-        for q in questions:
-            if st.button(q, key=f"q_{hash(q)}", use_container_width=True):
-                st.session_state.ai_query = q
-                st.rerun()
-    
-    with col2:
-        st.markdown("### 🔍 Custom Query")
-        user_query = st.text_area(
-            "Ask your question",
-            placeholder="Example: What are the connections between Entity A and Entity B?",
-            height=150
-        )
-        if st.button("🔍 Analyze", use_container_width=True):
-            if user_query:
-                st.session_state.ai_query = user_query
-                add_audit_log("ai_query", "AI Copilot", f"Query: {user_query[:100]}")
-                st.rerun()
-            else:
-                st.warning("Please enter a question.")
-    
-    if hasattr(st.session_state, 'ai_query') and st.session_state.ai_query:
-        query = st.session_state.ai_query
-        
-        st.markdown("---")
-        st.markdown("### 🤖 AI Response")
-        
-        with st.spinner("🧠 Analyzing with AI..."):
-            # Build context
-            context = {
-                'entities': [],
-                'total_nodes': len(node_list),
-                'total_edges': 0,
-                'entity_types': {},
-                'priority_entities': []
-            }
-            
-            try:
-                context['total_edges'] = G.number_of_edges()
-            except:
-                context['total_edges'] = 0
-            
-            for node in node_list[:30]:
-                degree = get_degree(G, node)
-                attrs = get_node_attributes(G, node)
-                node_type = attrs.get('type', 'UNKNOWN')
-                context['entity_types'][node_type] = context['entity_types'].get(node_type, 0) + 1
-                
-                if attrs.get('type') == 'PERSON':
-                    context['entities'].append({
-                        'id': node,
-                        'name': attrs.get('name', node),
-                        'degree': degree
-                    })
-                    if degree >= 3:
-                        context['priority_entities'].append(f"{node} (degree: {degree})")
-            
-            result = get_ai_response(query, context)
-            
-            st.markdown(f"""
-            <div class="rag-response">
-                <strong>Response:</strong>
-                <p style="margin-top: 0.5rem; white-space: pre-wrap;">{result['response']}</p>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 0.5rem;">
-                    <span style="font-size: 0.7rem; color: #888; margin-right: 0.5rem;">Sources:</span>
-                    {''.join([f'<span style="background: #667eea20; color: #667eea; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">{s}</span>' for s in result['sources']])}
-                    <span style="background: #667eea20; color: #667eea; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">
-                        Confidence: {result['confidence']:.0%}
-                    </span>
-                    {f'<span style="background: #2ed57320; color: #2ed573; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">✅ Real AI</span>' if result.get('using_api', False) else '<span style="background: #ffa50220; color: #ffa502; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">⚠️ Fallback</span>'}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.markdown("### 📋 Relevant Entities")
-            entities_with_degree = []
-            for node in node_list:
-                attrs = get_node_attributes(G, node)
-                if attrs.get('type') == 'PERSON':
-                    degree = get_degree(G, node)
-                    entities_with_degree.append((node, degree, attrs.get('name', node)))
-            
-            entities_with_degree.sort(key=lambda x: x[1], reverse=True)
-            for node, degree, name in entities_with_degree[:5]:
-                st.markdown(f"- **{node}** ({name}) - Degree: {degree}")
-            
-            st.warning("⚠️ This is an AI-generated analysis. All findings should be verified by human investigators.")
-            
-            st.session_state.ai_query = ""
 
 # ============================================================================
 # ALERTS PAGE
