@@ -1,5 +1,3 @@
-
-
 """
 SUTRA-X ULTIMATE FINAL: Complete Criminal Network Intelligence Platform
 SIH 2026 | AI-Powered | HYBRID HTTP-SDK GROQ ENGINE | PRODUCTION READY
@@ -200,16 +198,16 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================================================
-# GROQ AI ENGINE - HTTP FIRST, DYNAMIC MODEL DISCOVERY, NO STARTUP PING
+# GROQ AI ENGINE - HTTP FIRST WITH DYNAMIC MODEL DISCOVERY
 # ============================================================================
 
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
-DEFAULT_GROQ_MODEL = "openai/gpt-oss-20b"
+DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant"
 PREFERRED_GROQ_MODELS = [
-    "openai/gpt-oss-120b",
-    "openai/gpt-oss-20b",
-    "llama-3.3-70b-versatile",
     "llama-3.1-8b-instant",
+    "llama-3.3-70b-versatile", 
+    "llama-3.1-70b-versatile",
+    "mixtral-8x7b-32768",
 ]
 
 GROQ_API_KEY = None
@@ -230,6 +228,7 @@ GROQ_AVAILABLE_MODELS = []
 
 
 def _groq_headers():
+    """Return headers for Groq API requests"""
     return {
         "Authorization": f"Bearer {GROQ_API_KEY}",
         "Content-Type": "application/json",
@@ -272,8 +271,8 @@ def _select_groq_model(available_models):
         if model in available_set:
             return model
 
-    # Prefer text-generation models over whisper/embedding models.
-    blocked_words = ("whisper", "guard", "tts", "speech")
+    # Prefer text-generation models
+    blocked_words = ("whisper", "guard", "tts", "speech", "embed")
     candidates = [
         model for model in available_models
         if not any(word in model.lower() for word in blocked_words)
@@ -282,6 +281,7 @@ def _select_groq_model(available_models):
     return candidates[0] if candidates else None
 
 
+# Initialize Groq if API key is available
 if GROQ_API_KEY:
     GROQ_AVAILABLE_MODELS = _groq_list_models()
     selected_model = _select_groq_model(GROQ_AVAILABLE_MODELS)
@@ -306,7 +306,7 @@ except ImportError:
     GROQ_SDK_AVAILABLE = False
 
 
-def test_groq_connection(force=False):
+def test_groq_connection():
     """Perform an explicit, user-triggered end-to-end test."""
     global GROQ_WORKING, GROQ_MODEL, ENGINE_MODE, GROQ_LAST_ERROR, GROQ_AVAILABLE_MODELS
 
@@ -435,6 +435,7 @@ def query_groq(prompt: str, temperature=0.4, max_tokens=700) -> str:
 
 
 def groq_diagnostics():
+    """Return diagnostic information about Groq connection"""
     return {
         "api_key_configured": bool(GROQ_API_KEY),
         "sdk_installed": GROQ_SDK_AVAILABLE,
@@ -442,6 +443,7 @@ def groq_diagnostics():
         "engine_mode": ENGINE_MODE,
         "working": GROQ_WORKING,
         "available_models_count": len(GROQ_AVAILABLE_MODELS),
+        "available_models": GROQ_AVAILABLE_MODELS[:10],
         "last_error": GROQ_LAST_ERROR,
     }
 
@@ -933,279 +935,30 @@ with st.sidebar:
     
     # API Status
     st.markdown("### 🤖 AI Status")
-# ============================================================================
-# GROQ AI ENGINE - HTTP FIRST, DYNAMIC MODEL DISCOVERY, NO STARTUP PING
-# ============================================================================
-
-GROQ_BASE_URL = "https://api.groq.com/openai/v1"
-DEFAULT_GROQ_MODEL = "openai/gpt-oss-20b"
-PREFERRED_GROQ_MODELS = [
-    "openai/gpt-oss-120b",
-    "openai/gpt-oss-20b",
-    "llama-3.3-70b-versatile",
-    "llama-3.1-8b-instant",
-]
-
-GROQ_API_KEY = None
-try:
-    GROQ_API_KEY = st.secrets.get("GROQ_API_KEY")
-except Exception:
-    GROQ_API_KEY = None
-
-if not GROQ_API_KEY:
-    GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-
-GROQ_WORKING = False
-GROQ_AVAILABLE = bool(GROQ_API_KEY)
-GROQ_MODEL = DEFAULT_GROQ_MODEL
-ENGINE_MODE = "No API Key"
-GROQ_LAST_ERROR = None
-GROQ_AVAILABLE_MODELS = []
-
-
-def _groq_headers():
-    return {
-        "Authorization": f"Bearer {GROQ_API_KEY}",
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
-
-
-def _groq_list_models():
-    """Return model IDs available to THIS API key."""
-    if not GROQ_API_KEY:
-        return []
-
-    try:
-        response = requests.get(
-            f"{GROQ_BASE_URL}/models",
-            headers=_groq_headers(),
-            timeout=10,
-        )
-
-        if response.status_code != 200:
-            raise RuntimeError(
-                f"HTTP {response.status_code}: {response.text[:500]}"
-            )
-
-        payload = response.json()
-        data = payload.get("data", [])
-        return [str(item.get("id")) for item in data if item.get("id")]
-
-    except Exception as exc:
-        global GROQ_LAST_ERROR
-        GROQ_LAST_ERROR = f"Model discovery failed: {type(exc).__name__}: {exc}"
-        return []
-
-
-def _select_groq_model(available_models):
-    """Pick the best model the current key can actually access."""
-    available_set = set(available_models)
-
-    for model in PREFERRED_GROQ_MODELS:
-        if model in available_set:
-            return model
-
-    # Prefer text-generation models over whisper/embedding models.
-    blocked_words = ("whisper", "guard", "tts", "speech")
-    candidates = [
-        model for model in available_models
-        if not any(word in model.lower() for word in blocked_words)
-    ]
-
-    return candidates[0] if candidates else None
-
-
-if GROQ_API_KEY:
-    GROQ_AVAILABLE_MODELS = _groq_list_models()
-    selected_model = _select_groq_model(GROQ_AVAILABLE_MODELS)
-
-    if selected_model:
-        GROQ_MODEL = selected_model
-        GROQ_WORKING = True
-        ENGINE_MODE = "HTTP API · Model Verified"
+    
+    if GROQ_WORKING:
+        st.success(f"✅ Groq Online · {GROQ_MODEL}")
+    elif GROQ_API_KEY:
+        st.warning(f"⚠️ Groq Offline · {ENGINE_MODE}")
+        if GROQ_LAST_ERROR:
+            st.caption(str(GROQ_LAST_ERROR)[:200])
     else:
-        GROQ_WORKING = False
-        ENGINE_MODE = "API Key Valid · No Chat Model Accessible"
-else:
-    ENGINE_MODE = "No API Key"
-
-
-# Optional SDK: the application does NOT depend on it.
-try:
-    from groq import Groq
-    GROQ_SDK_AVAILABLE = True
-except ImportError:
-    Groq = None
-    GROQ_SDK_AVAILABLE = False
-
-
-def test_groq_connection(force=False):
-    """Perform an explicit, user-triggered end-to-end test."""
-    global GROQ_WORKING, GROQ_MODEL, ENGINE_MODE, GROQ_LAST_ERROR, GROQ_AVAILABLE_MODELS
-
-    if not GROQ_API_KEY:
-        GROQ_WORKING = False
-        ENGINE_MODE = "No API Key"
-        GROQ_LAST_ERROR = "GROQ_API_KEY is missing."
-        return False
-
-    GROQ_LAST_ERROR = None
-    GROQ_AVAILABLE_MODELS = _groq_list_models()
-    selected_model = _select_groq_model(GROQ_AVAILABLE_MODELS)
-
-    if not selected_model:
-        GROQ_WORKING = False
-        ENGINE_MODE = "No Accessible Chat Model"
-        if not GROQ_LAST_ERROR:
-            GROQ_LAST_ERROR = (
-                "The API key is reachable, but /models did not return an accessible "
-                "chat model for this project/key."
-            )
-        return False
-
-    GROQ_MODEL = selected_model
-
-    payload = {
-        "model": GROQ_MODEL,
-        "messages": [
-            {
-                "role": "user",
-                "content": "Reply with exactly: SUTRA-X Groq connection verified."
-            }
-        ],
-        "temperature": 0,
-        "max_completion_tokens": 20,
-    }
-
-    try:
-        response = requests.post(
-            f"{GROQ_BASE_URL}/chat/completions",
-            headers=_groq_headers(),
-            json=payload,
-            timeout=20,
-        )
-
-        if response.status_code == 200:
-            GROQ_WORKING = True
-            ENGINE_MODE = "HTTP API · Verified"
-            return True
-
-        GROQ_WORKING = False
-        ENGINE_MODE = f"HTTP {response.status_code}"
-        GROQ_LAST_ERROR = response.text[:1000]
-        return False
-
-    except requests.RequestException as exc:
-        GROQ_WORKING = False
-        ENGINE_MODE = "HTTP Connection Error"
-        GROQ_LAST_ERROR = f"{type(exc).__name__}: {exc}"
-        return False
-
-
-def query_groq(prompt: str, temperature=0.4, max_tokens=700) -> str:
-    """Call Groq HTTP API using a model confirmed for the current key."""
-    global GROQ_WORKING, GROQ_LAST_ERROR, ENGINE_MODE
-
-    if not GROQ_API_KEY:
-        return get_fallback_response(prompt)
-
-    if not GROQ_MODEL:
-        test_groq_connection()
-
-    if not GROQ_MODEL:
-        return get_fallback_response(prompt)
-
-    payload = {
-        "model": GROQ_MODEL,
-        "messages": [
-            {
-                "role": "system",
-                "content": (
-                    "You are SUTRA-X AI, an investigation-support assistant. "
-                    "Analyze only the supplied synthetic or authorized evidence. "
-                    "Do not invent facts or declare anyone guilty. Clearly separate "
-                    "observations from hypotheses and recommend verification steps."
-                ),
-            },
-            {"role": "user", "content": prompt},
-        ],
-        "temperature": temperature,
-        "max_completion_tokens": max_tokens,
-    }
-
-    try:
-        response = requests.post(
-            f"{GROQ_BASE_URL}/chat/completions",
-            headers=_groq_headers(),
-            json=payload,
-            timeout=30,
-        )
-
-        if response.status_code == 200:
-            data = response.json()
-            content = data.get("choices", [{}])[0].get("message", {}).get("content")
-            if content:
-                GROQ_WORKING = True
-                ENGINE_MODE = "HTTP API · Live"
-                GROQ_LAST_ERROR = None
-                return content.strip()
-
-            GROQ_WORKING = False
-            ENGINE_MODE = "Malformed API Response"
-            GROQ_LAST_ERROR = "Groq returned HTTP 200 but no message content."
-            return get_fallback_response(prompt)
-
-        GROQ_WORKING = False
-        ENGINE_MODE = f"HTTP {response.status_code}"
-        GROQ_LAST_ERROR = response.text[:1500]
-
-    except requests.RequestException as exc:
-        GROQ_WORKING = False
-        ENGINE_MODE = "HTTP Connection Error"
-        GROQ_LAST_ERROR = f"{type(exc).__name__}: {exc}"
-
-    return get_fallback_response(prompt)
-
-
-def groq_diagnostics():
-    return {
-        "api_key_configured": bool(GROQ_API_KEY),
-        "sdk_installed": GROQ_SDK_AVAILABLE,
-        "selected_model": GROQ_MODEL,
-        "engine_mode": ENGINE_MODE,
-        "working": GROQ_WORKING,
-        "available_models_count": len(GROQ_AVAILABLE_MODELS),
-        "last_error": GROQ_LAST_ERROR,
-    }
-
-
-def get_fallback_response(query):
-    """Fallback response when API is unavailable."""
-    query_lower = query.lower()
-    responses = []
-
-    if "person" in query_lower or "who" in query_lower or "entity" in query_lower:
-        responses.append("🔍 Key entities can be prioritized using network centrality and relationship density.")
-        responses.append("💡 Review the Entity Profile and Network Graph before drawing conclusions.")
-
-    if "connection" in query_lower or "link" in query_lower:
-        responses.append("🔗 Multiple relationships can be explored through the interactive network graph.")
-        responses.append("💡 Compare relationship type, timing, and repeated interactions.")
-
-    if "pattern" in query_lower:
-        responses.append("📊 Repeated or unusual relationship patterns may deserve analyst review.")
-        responses.append("💡 Verify the underlying evidence before escalating an alert.")
-
-    if "priority" in query_lower:
-        responses.append("🚨 Priority entities can be ranked using degree/centrality and rule-based risk indicators.")
-        responses.append("💡 Start with high-centrality entities and inspect their direct evidence.")
-
-    if not responses:
-        responses.append("💡 Network analysis is available. Try asking about entities, relationships, risk, or patterns.")
-
-    return "\n".join(responses)
-
+        st.error("❌ No API Key Found")
+        st.caption("Set GROQ_API_KEY in .streamlit/secrets.toml")
+    
+    # Test Connection Button
+    if st.button("🔌 Test Groq Connection", use_container_width=True):
+        with st.spinner("Testing Groq connection..."):
+            if test_groq_connection():
+                st.success(f"✅ Groq connected! Model: {GROQ_MODEL}")
+            else:
+                st.error(f"❌ Groq connection failed: {GROQ_LAST_ERROR}")
+        st.rerun()
+    
+    # Diagnostics
+    with st.expander("🔍 Groq Diagnostics"):
+        diag = groq_diagnostics()
+        st.json(diag)
     
     st.markdown("---")
     
@@ -1747,6 +1500,16 @@ def render_ai_copilot():
             st.caption(str(GROQ_LAST_ERROR)[:300])
     else:
         st.warning("⚠️ Groq AI is not configured — Local fallback is active.")
+        st.caption("Set GROQ_API_KEY in .streamlit/secrets.toml")
+    
+    # Test button in AI page
+    if st.button("🔄 Test Groq Connection", key="test_groq_ai", use_container_width=True):
+        with st.spinner("Testing Groq connection..."):
+            if test_groq_connection():
+                st.success(f"✅ Groq connected! Model: {GROQ_MODEL}")
+            else:
+                st.error(f"❌ Groq connection failed: {GROQ_LAST_ERROR}")
+        st.rerun()
     
     st.info("🧠 Ask questions about your investigation")
     
@@ -1844,7 +1607,7 @@ def render_ai_copilot():
                         💡 <strong>To enable real AI:</strong><br>
                         1. Create .streamlit/secrets.toml with GROQ_API_KEY<br>
                         2. Get free key from console.groq.com<br>
-                        3. Add 'groq' to requirements.txt
+                        3. Click "Test Groq Connection" button above
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
