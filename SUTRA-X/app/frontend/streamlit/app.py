@@ -11,38 +11,49 @@ import random
 import json
 import os
 import time
-import subprocess
-import sys
 
 # ============================================================================
-# GROQ API CONFIGURATION - WITH INSTALLATION CHECK
+# GROQ API CONFIGURATION
 # ============================================================================
 
 GROQ_API_KEY = "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"
 
-# Try to import groq with proper error handling
+# Check if groq is available
 try:
-    import groq
     from groq import Groq
     GROQ_AVAILABLE = True
-    # Test the connection
+    GROQ_WORKING = False
     try:
         test_client = Groq(api_key=GROQ_API_KEY)
-        # Quick test call
         test_response = test_client.chat.completions.create(
             model="llama3-70b-8192",
             messages=[{"role": "user", "content": "test"}],
             max_tokens=5
         )
-        print("✅ Groq API configured and working!")
         GROQ_WORKING = True
+        print("✅ Groq API configured and working!")
     except Exception as e:
-        GROQ_WORKING = False
         print(f"⚠️ Groq test failed: {e}")
 except ImportError:
     GROQ_AVAILABLE = False
     GROQ_WORKING = False
     print("⚠️ Groq library not installed.")
+
+# ============================================================================
+# CHECK PLOTLY AND NETWORKX
+# ============================================================================
+
+try:
+    import plotly.graph_objects as go
+    PLOTLY_AVAILABLE = True
+except ImportError:
+    PLOTLY_AVAILABLE = False
+
+try:
+    import networkx as nx
+    NETWORKX_AVAILABLE = True
+except ImportError:
+    NETWORKX_AVAILABLE = False
 
 # ============================================================================
 # PAGE CONFIGURATION
@@ -93,22 +104,20 @@ if 'offline_mode' not in st.session_state:
     st.session_state.offline_mode = False
 if 'ai_response_cache' not in st.session_state:
     st.session_state.ai_response_cache = {}
-if 'groq_installed' not in st.session_state:
-    st.session_state.groq_installed = GROQ_AVAILABLE
 
 # ============================================================================
 # RBAC SYSTEM
 # ============================================================================
 
 USERS_DB = {
-    "admin": {"password": "admin123", "role": "admin", "name": "Administrator", "badge": "👑"},
-    "investigator": {"password": "invest123", "role": "investigator", "name": "Senior Investigator", "badge": "🕵️"},
-    "analyst": {"password": "analyst123", "role": "analyst", "name": "Data Analyst", "badge": "📊"},
-    "viewer": {"password": "viewer123", "role": "viewer", "name": "Viewer", "badge": "👀"}
+    "admin": {"password": "admin123", "role": "admin", "name": "Administrator"},
+    "investigator": {"password": "invest123", "role": "investigator", "name": "Senior Investigator"},
+    "analyst": {"password": "analyst123", "role": "analyst", "name": "Data Analyst"},
+    "viewer": {"password": "viewer123", "role": "viewer", "name": "Viewer"}
 }
 
 ROLE_PERMISSIONS = {
-    "admin": ["view_data", "export_data", "manage_entities", "manage_users", "view_audit", "manage_alerts", "run_simulation", "use_ai", "delete_data"],
+    "admin": ["view_data", "export_data", "manage_entities", "manage_users", "view_audit", "manage_alerts", "run_simulation", "use_ai"],
     "investigator": ["view_data", "export_data", "manage_entities", "view_audit", "manage_alerts", "run_simulation", "use_ai"],
     "analyst": ["view_data", "export_data", "view_audit", "use_ai"],
     "viewer": ["view_data"]
@@ -195,10 +204,9 @@ class SimpleGraph:
 # ============================================================================
 
 def generate_sample_network():
-    try:
-        import networkx as nx
+    if NETWORKX_AVAILABLE:
         G = nx.Graph()
-    except:
+    else:
         G = SimpleGraph()
     
     first_names = ['Raj', 'Amit', 'Priya', 'Suresh', 'Anita', 'Vikram', 'Neha', 'Rahul', 
@@ -453,19 +461,11 @@ def generate_simulation(G, target_entity):
     return simulation_results
 
 # ============================================================================
-# AI COPILOT WITH GROQ API - COMPLETE FIX
+# AI COPILOT WITH GROQ API
 # ============================================================================
 
-def install_groq():
-    """Try to install groq automatically"""
-    try:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "groq"])
-        return True
-    except:
-        return False
-
 def get_ai_response(query, context):
-    """Get AI response using Groq API - COMPLETE FIX"""
+    """Get AI response using Groq API"""
     
     # Check cache
     cache_key = f"{query}_{len(context)}"
@@ -493,7 +493,7 @@ Be specific and reference actual entities in the network.
 Keep responses concise and practical for investigators.
 """
     
-    # Check if Groq is available and working
+    # Try Groq API
     if GROQ_AVAILABLE and GROQ_WORKING:
         try:
             client = Groq(api_key=GROQ_API_KEY)
@@ -522,11 +522,6 @@ Keep responses concise and practical for investigators.
         except Exception as e:
             error_msg = str(e)
             print(f"Groq API Error: {error_msg}")
-            # If error is about installation, try to install
-            if "No module named" in error_msg or "import" in error_msg:
-                st.session_state.groq_installed = False
-                GROQ_AVAILABLE = False
-                GROQ_WORKING = False
     
     # Fallback response
     fallback = get_fallback_response(query, context)
@@ -551,53 +546,28 @@ def get_fallback_response(query, context):
     entity_types = context.get('entity_types', {})
     priority_entities = context.get('priority_entities', [])
     
-    # Entity questions
     if "person" in query_lower or "who" in query_lower or "entity" in query_lower:
         if entities:
             top = sorted(entities, key=lambda x: x.get('degree', 0), reverse=True)[:5]
             names = [f"{e.get('name', e.get('id', 'Unknown'))} (degree: {e.get('degree', 0)})" for e in top]
             responses.append(f"🔍 **Key Entities:** {', '.join(names)}")
-            responses.append("💡 These are the most connected individuals in the network.")
         else:
-            responses.append("🔍 No entities found in the network.")
+            responses.append("🔍 No entities found.")
     
-    # Connection questions
-    if "connection" in query_lower or "link" in query_lower or "relationship" in query_lower:
-        responses.append(f"🔗 **Connection Analysis:**")
-        responses.append(f"• {total_edges} relationships detected in the network.")
+    if "connection" in query_lower or "link" in query_lower:
+        responses.append(f"🔗 {total_edges} relationships detected.")
+    
+    if "pattern" in query_lower:
+        responses.append("📊 Financial patterns suggest potential money laundering.")
+    
+    if "priority" in query_lower:
         if priority_entities:
-            responses.append(f"• {len(priority_entities)} high-priority entities identified.")
-        responses.append("💡 Review the Network Graph for visual relationship mapping.")
+            responses.append(f"🚨 Priority entities: {', '.join(priority_entities[:5])}")
     
-    # Pattern questions
-    if "pattern" in query_lower or "trend" in query_lower or "activity" in query_lower:
-        responses.append("📊 **Pattern Detection:**")
-        responses.append("• Financial transactions show patterns of potential money laundering.")
-        responses.append("• Communication patterns suggest coordinated activity.")
-        responses.append("• Location data reveals clustering in specific areas.")
-    
-    # Priority questions
-    if "priority" in query_lower or "important" in query_lower or "critical" in query_lower:
-        if priority_entities:
-            responses.append(f"🚨 **Priority Entities:**")
-            for p in priority_entities[:5]:
-                responses.append(f"• {p}")
-            responses.append("💡 These entities require immediate attention.")
-        else:
-            responses.append("🚨 No critical entities detected.")
-    
-    # Default
     if not responses:
-        responses.append(f"💡 **Network Overview:**")
-        responses.append(f"• {total_nodes} entities and {total_edges} relationships detected.")
+        responses.append(f"💡 Network contains {total_nodes} entities and {total_edges} relationships.")
         if entity_types:
-            responses.append(f"• Entity types: {', '.join([f'{k}: {v}' for k, v in entity_types.items()])}")
-        responses.append("")
-        responses.append("💡 **Try asking about:**")
-        responses.append("• 'Who are the key entities?'")
-        responses.append("• 'What patterns do you see?'")
-        responses.append("• 'Which entities are most important?'")
-        responses.append("• 'Show me connections between cases'")
+            responses.append(f"📊 Entity types: {', '.join([f'{k}: {v}' for k, v in entity_types.items()])}")
     
     return '\n'.join(responses)
 
@@ -680,7 +650,6 @@ st.markdown("""
         font-size: 0.9rem;
         font-weight: 700;
         animation: pulse 2s infinite;
-        box-shadow: 0 4px 15px rgba(238, 90, 36, 0.3);
     }
     
     .ps-badge-hero {
@@ -691,18 +660,6 @@ st.markdown("""
         border-radius: 50px;
         font-size: 0.9rem;
         font-weight: 700;
-        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-    }
-    
-    .feature-tag {
-        display: inline-block;
-        background: rgba(255,255,255,0.1);
-        backdrop-filter: blur(10px);
-        color: rgba(255,255,255,0.8);
-        padding: 6px 16px;
-        border-radius: 50px;
-        font-size: 0.75rem;
-        border: 1px solid rgba(255,255,255,0.1);
     }
     
     .metric-card {
@@ -729,7 +686,7 @@ st.markdown("""
         font-weight: 600;
         display: inline-block;
     }
-    .status-high { background: #ff6b6b; color: white; animation: pulse 1.5s infinite; }
+    .status-high { background: #ff6b6b; color: white; }
     .status-medium { background: #feca57; color: #1a1a2e; }
     .status-low { background: #48dbfb; color: #1a1a2e; }
     
@@ -779,26 +736,6 @@ st.markdown("""
         border-radius: 10px;
     }
     
-    .glow-card {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 15px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-        border: 1px solid rgba(102,126,234,0.1);
-        transition: all 0.3s ease;
-        animation: glow 4s infinite;
-        height: 100%;
-        text-align: center;
-    }
-    .glow-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 30px rgba(102,126,234,0.2);
-        border-color: #667eea;
-    }
-    .glow-card .icon { font-size: 3rem; margin-bottom: 0.5rem; }
-    .glow-card h3 { color: #1a1a2e; font-size: 1.2rem; margin: 0.5rem 0; }
-    .glow-card p { color: #4a4a4a; font-size: 0.9rem; }
-    
     .rag-response {
         background: #f8f9fa;
         padding: 1.5rem;
@@ -808,24 +745,6 @@ st.markdown("""
         box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
     .rag-response p { color: #1a1a2e; line-height: 1.6; }
-    .rag-response strong { color: #1a1a2e; }
-    
-    .quick-stats {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 15px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-    }
-    .quick-stats .stat-item {
-        display: flex;
-        justify-content: space-between;
-        padding: 0.5rem 0;
-        border-bottom: 1px solid #eee;
-        color: #1a1a2e;
-    }
-    .quick-stats .stat-item:last-child { border-bottom: none; }
-    .quick-stats .stat-label { color: #4a4a4a; }
-    .quick-stats .stat-value { font-weight: 700; color: #1a1a2e; }
     
     .footer {
         text-align: center;
@@ -855,16 +774,11 @@ st.markdown("""
         .hero-section { padding: 2rem; }
         .metric-card .value { font-size: 1.5rem; }
     }
-    
-    .install-btn {
-        background: linear-gradient(135deg, #2ed573, #26de81) !important;
-        color: white !important;
-    }
 </style>
 """, unsafe_allow_html=True)
 
 # ============================================================================
-# SIDEBAR
+# SIDEBAR - FIXED (Removed duplicate navigation)
 # ============================================================================
 
 with st.sidebar:
@@ -890,20 +804,10 @@ with st.sidebar:
     if GROQ_AVAILABLE and GROQ_WORKING:
         st.success("✅ Groq API Connected (FREE)")
         st.caption("Model: LLaMA3-70B-8192")
-    elif GROQ_AVAILABLE and not GROQ_WORKING:
-        st.warning("⚠️ Groq Installed but Not Working")
-        st.caption("Check API key or internet connection")
     else:
-        st.error("❌ Groq Not Installed")
-        st.caption("Run: pip install groq")
-        if st.button("📦 Install Groq", key="install_groq_btn", use_container_width=True):
-            with st.spinner("Installing groq..."):
-                try:
-                    subprocess.check_call([sys.executable, "-m", "pip", "install", "groq"])
-                    st.success("✅ Groq installed! Please restart the app.")
-                    st.rerun()
-                except:
-                    st.error("❌ Installation failed. Run manually: pip install groq")
+        st.warning("⚠️ Groq Not Available")
+        st.caption("Add 'groq' to requirements.txt")
+        st.code("groq>=0.3.0", language="bash")
     
     st.markdown("---")
     
@@ -946,9 +850,11 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # Navigation
+    # Navigation - FIXED: Removed duplicate "Dashboard"
     st.markdown("### 📌 Navigation")
-    nav_items = [
+    
+    # Define pages with unique names (no duplicates)
+    nav_pages = [
         ("📊 Dashboard", "Dashboard"),
         ("🌐 Network Graph", "Network Graph"),
         ("👤 Entity Profile", "Entity Profile"),
@@ -961,8 +867,9 @@ with st.sidebar:
         ("📄 Export", "Export"),
         ("🔐 Security", "Security")
     ]
-    for icon, page in nav_items:
-        if st.button(f"{icon} {page}", key=f"nav_{page}", use_container_width=True):
+    
+    for icon, page in nav_pages:
+        if st.button(f"{icon}", key=f"nav_{page}", use_container_width=True):
             st.session_state.current_page = page
             st.rerun()
     
@@ -1031,7 +938,6 @@ st.markdown("""
 
 def render_dashboard():
     G = st.session_state.graph
-    node_list = get_node_list(G)
     metrics = analyze_network(G)
     
     st.markdown("""
@@ -1045,7 +951,7 @@ def render_dashboard():
         st.info("👈 Click 'Generate Sample Data' in the sidebar to get started")
         return
     
-    col1, col2, col3, col4, col5 = st.columns(5)
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         st.markdown(f"""
@@ -1076,35 +982,18 @@ def render_dashboard():
         """, unsafe_allow_html=True)
     
     with col4:
-        cross_case = 0
-        for node in node_list:
-            attrs = get_node_attributes(G, node)
-            if attrs.get('type') == 'PERSON':
-                neighbors = get_neighbors(G, node)
-                case_connections = sum(1 for n in neighbors if get_node_attributes(G, n).get('type') == 'CASE')
-                if case_connections >= 2:
-                    cross_case += 1
-        st.markdown(f"""
-        <div class="metric-card" style="border-left-color: #feca57;">
-            <div class="icon">🔍</div>
-            <div class="value">{cross_case}</div>
-            <div class="label">Cross-Case Links</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col5:
         alert_count = len(st.session_state.alerts)
         st.markdown(f"""
-        <div class="metric-card" style="border-left-color: #ff4757;">
+        <div class="metric-card" style="border-left-color: #feca57;">
             <div class="icon">🔔</div>
             <div class="value">{alert_count}</div>
             <div class="label">Active Alerts</div>
         </div>
         """, unsafe_allow_html=True)
     
-    st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+    st.markdown("---")
     
-    st.markdown(f"## 🚨 Priority Investigation Leads")
+    st.markdown("## 🚨 Priority Investigation Leads")
     
     if metrics and metrics['priority_entities']:
         for entity in metrics['priority_entities'][:5]:
@@ -1112,30 +1001,25 @@ def render_dashboard():
             priority_label = "HIGH" if score >= 70 else "MEDIUM" if score >= 50 else "LOW"
             color = "🔴" if priority_label == "HIGH" else "🟡" if priority_label == "MEDIUM" else "🟢"
             
-            col1, col2, col3, col4 = st.columns([2.5, 2, 1.5, 1])
+            col1, col2, col3 = st.columns([2.5, 2, 1])
             with col1:
                 st.markdown(f"""
                 <div class="entity-card">
                     <strong>🔍 {entity['id']}</strong>
-                    <br><span style="color: #888; font-size: 0.85rem;">{entity['type']} | {entity['name']}</span>
+                    <br><span style="color: #888; font-size: 0.8rem;">{entity['type']} | {entity['name']}</span>
                 </div>
                 """, unsafe_allow_html=True)
             with col2:
                 st.caption(f"Connections: {entity['degree']}")
             with col3:
                 st.markdown(f'<span class="status-badge status-{priority_label.lower()}">{color} {priority_label}</span>', unsafe_allow_html=True)
-            with col4:
-                if st.button("View", key=f"view_dash_{entity['id']}"):
-                    st.session_state.selected_entity = entity['id']
-                    st.session_state.current_page = "Entity Profile"
-                    st.rerun()
             
             st.markdown("---")
     else:
         st.info("No priority leads found")
 
 # ============================================================================
-# AI COPILOT PAGE - COMPLETE FIX
+# AI COPILOT PAGE
 # ============================================================================
 
 def render_ai_copilot():
@@ -1157,50 +1041,16 @@ def render_ai_copilot():
         st.warning("🔒 You need 'Analyst' or higher role to use AI Copilot.")
         return
     
-    # ===== API STATUS WITH INSTALL OPTION =====
+    # API Status
     st.markdown("### 🤖 AI Status")
-    
     if GROQ_AVAILABLE and GROQ_WORKING:
         st.success("✅ Groq API Connected (FREE) - Real AI Responses")
-        st.caption("Model: LLaMA3-70B-8192 | Status: Active")
-    elif GROQ_AVAILABLE and not GROQ_WORKING:
-        st.warning("⚠️ Groq Installed but Not Working")
-        st.caption("Check API key or internet connection")
-        if st.button("🔄 Test Groq Connection", key="test_groq"):
-            try:
-                test_client = Groq(api_key=GROQ_API_KEY)
-                test_response = test_client.chat.completions.create(
-                    model="llama3-70b-8192",
-                    messages=[{"role": "user", "content": "test"}],
-                    max_tokens=5
-                )
-                st.success("✅ Groq is working now!")
-                st.rerun()
-            except Exception as e:
-                st.error(f"❌ Groq test failed: {e}")
+        st.caption("Model: LLaMA3-70B-8192")
     else:
-        st.error("❌ Groq Not Installed")
-        st.caption("Install with: pip install groq")
-        
-        # Install button
-        if st.button("📦 Install Groq Now", key="install_groq", use_container_width=True):
-            with st.spinner("Installing groq..."):
-                try:
-                    result = subprocess.run([sys.executable, "-m", "pip", "install", "groq"], 
-                                          capture_output=True, text=True)
-                    if result.returncode == 0:
-                        st.success("✅ Groq installed successfully! Please restart the app.")
-                        st.info("Click 'Rerun' button or restart Streamlit")
-                        st.rerun()
-                    else:
-                        st.error(f"❌ Installation failed: {result.stderr}")
-                except Exception as e:
-                    st.error(f"❌ Error: {e}")
-                    st.code("pip install groq", language="bash")
+        st.warning("⚠️ Groq Not Available - Using Fallback Mode")
+        st.caption("Add 'groq>=0.3.0' to requirements.txt")
     
-    st.markdown("---")
-    
-    st.info("🧠 Ask questions about your investigation or get AI-generated insights")
+    st.info("🧠 Ask questions about your investigation")
     
     col1, col2 = st.columns(2)
     
@@ -1210,8 +1060,7 @@ def render_ai_copilot():
             "Who are the most central people in this network?",
             "Show me connections between cases",
             "What patterns indicate criminal activity?",
-            "Which entities should I investigate first?",
-            "What are the hidden connections in this network?"
+            "Which entities should I investigate first?"
         ]
         for q in questions:
             if st.button(q, key=f"q_{hash(q)}", use_container_width=True):
@@ -1271,46 +1120,34 @@ def render_ai_copilot():
             
             result = get_ai_response(query, context)
             
-            # Show response with status
             if result.get('using_api', False):
                 st.markdown(f"""
                 <div class="rag-response" style="border-left-color: #2ed573;">
-                    <strong>🤖 AI Response (Powered by Groq):</strong>
+                    <strong>🤖 AI Response (Groq):</strong>
                     <p style="margin-top: 0.5rem; white-space: pre-wrap;">{result['response']}</p>
                     <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 0.5rem;">
-                        <span style="font-size: 0.7rem; color: #888; margin-right: 0.5rem;">Sources:</span>
+                        <span style="font-size: 0.7rem; color: #888;">Sources:</span>
                         {''.join([f'<span style="background: #667eea20; color: #667eea; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">{s}</span>' for s in result['sources']])}
-                        <span style="background: #667eea20; color: #667eea; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">
-                            Confidence: {result['confidence']:.0%}
-                        </span>
-                        <span style="background: #2ed57320; color: #2ed573; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">
-                            ✅ Real AI
-                        </span>
+                        <span style="background: #2ed57320; color: #2ed573; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">✅ Real AI</span>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
             else:
                 st.markdown(f"""
                 <div class="rag-response" style="border-left-color: #ffa502;">
-                    <strong>💡 Response (Fallback Mode):</strong>
+                    <strong>💡 Response (Fallback):</strong>
                     <p style="margin-top: 0.5rem; white-space: pre-wrap;">{result['response']}</p>
                     <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 0.5rem;">
-                        <span style="font-size: 0.7rem; color: #888; margin-right: 0.5rem;">Sources:</span>
+                        <span style="font-size: 0.7rem; color: #888;">Sources:</span>
                         {''.join([f'<span style="background: #667eea20; color: #667eea; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">{s}</span>' for s in result['sources']])}
-                        <span style="background: #667eea20; color: #667eea; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">
-                            Confidence: {result['confidence']:.0%}
-                        </span>
-                        <span style="background: #ffa50220; color: #ffa502; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">
-                            ⚠️ Fallback
-                        </span>
+                        <span style="background: #ffa50220; color: #ffa502; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">⚠️ Fallback</span>
                     </div>
                     <div style="margin-top: 0.5rem; padding: 0.5rem; background: #fff3cd; border-radius: 8px; font-size: 0.85rem;">
-                        💡 <strong>Tip:</strong> Install Groq for real AI responses: <code>pip install groq</code>
+                        💡 Add 'groq' to requirements.txt for real AI responses
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
             
-            # Relevant entities
             st.markdown("### 📋 Relevant Entities")
             entities_with_degree = []
             for node in node_list:
@@ -1323,12 +1160,12 @@ def render_ai_copilot():
             for node, degree, name in entities_with_degree[:5]:
                 st.markdown(f"- **{node}** ({name}) - Degree: {degree}")
             
-            st.warning("⚠️ This is an AI-generated analysis. All findings should be verified by human investigators.")
+            st.warning("⚠️ This is an AI-generated analysis. All findings should be verified.")
             
             st.session_state.ai_query = ""
 
 # ============================================================================
-# NETWORK GRAPH (3D) - Simplified
+# NETWORK GRAPH
 # ============================================================================
 
 def render_network_graph():
@@ -1338,7 +1175,7 @@ def render_network_graph():
     st.markdown("""
     <div style="animation: fadeInUp 0.6s ease-out;">
         <h1 style="font-size: 2.5rem; font-weight: 700; color: #1a1a2e;">🌐 Network Graph</h1>
-        <p style="color: #666; margin-top: -0.5rem;">Interactive 3D network visualization</p>
+        <p style="color: #666; margin-top: -0.5rem;">Interactive network visualization</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -1346,95 +1183,92 @@ def render_network_graph():
         st.info("👈 Click 'Generate Sample Data' in the sidebar to get started")
         return
     
-    try:
-        import networkx as nx
-        import plotly.graph_objects as go
-        
-        st.info("💡 Hover over nodes for details. Drag to rotate the 3D view.")
-        
-        pos = nx.spring_layout(G, dim=3, k=0.5, iterations=50)
-        
-        node_x, node_y, node_z = [], [], []
-        node_text, node_color, node_size = [], [], []
-        
-        color_map = {
-            'PERSON': '#FF6B6B',
-            'PHONE': '#4ECDC4', 
-            'ACCOUNT': '#45B7D1',
-            'CASE': '#FF9FF3',
-            'UNKNOWN': '#888888'
-        }
-        
-        for node in node_list:
-            try:
-                x, y, z = pos[node]
-                node_x.append(x)
-                node_y.append(y)
-                node_z.append(z)
-                attrs = get_node_attributes(G, node)
-                node_type = attrs.get('type', 'UNKNOWN')
-                degree = get_degree(G, node)
-                name = attrs.get('name', attrs.get('number', ''))
-                node_text.append(f"<b>{node}</b><br>Type: {node_type}<br>Name: {name}<br>Degree: {degree}")
-                node_color.append(color_map.get(node_type, '#888888'))
-                node_size.append(10 + degree * 3)
-            except:
-                continue
-        
-        edge_x, edge_y, edge_z = [], [], []
-        for edge in G.edges():
-            try:
-                x0, y0, z0 = pos[edge[0]]
-                x1, y1, z1 = pos[edge[1]]
-                edge_x.extend([x0, x1, None])
-                edge_y.extend([y0, y1, None])
-                edge_z.extend([z0, z1, None])
-            except:
-                continue
-        
-        edge_trace = go.Scatter3d(
-            x=edge_x, y=edge_y, z=edge_z,
-            line=dict(width=1, color='rgba(136, 136, 136, 0.3)'),
-            hoverinfo='none',
-            mode='lines'
-        )
-        
-        node_trace = go.Scatter3d(
-            x=node_x, y=node_y, z=node_z,
-            mode='markers',
-            hoverinfo='text',
-            text=node_text,
-            marker=dict(
-                size=node_size,
-                color=node_color,
-                opacity=0.9,
-                line=dict(width=1, color='#fff')
+    if PLOTLY_AVAILABLE and NETWORKX_AVAILABLE:
+        try:
+            import plotly.graph_objects as go
+            import networkx as nx
+            
+            st.info("💡 Hover over nodes for details.")
+            
+            pos = nx.spring_layout(G, k=0.5, iterations=50)
+            
+            edge_x, edge_y = [], []
+            for edge in G.edges():
+                try:
+                    x0, y0 = pos[edge[0]]
+                    x1, y1 = pos[edge[1]]
+                    edge_x.extend([x0, x1, None])
+                    edge_y.extend([y0, y1, None])
+                except:
+                    continue
+            
+            edge_trace = go.Scatter(
+                x=edge_x, y=edge_y,
+                line=dict(width=0.8, color='#888'),
+                hoverinfo='none',
+                mode='lines'
             )
-        )
-        
-        fig = go.Figure(
-            data=[edge_trace, node_trace],
-            layout=go.Layout(
-                title='3D Criminal Network Graph',
-                scene=dict(
-                    xaxis=dict(showgrid=False, showticklabels=False, title=''),
-                    yaxis=dict(showgrid=False, showticklabels=False, title=''),
-                    zaxis=dict(showgrid=False, showticklabels=False, title=''),
-                    bgcolor='#f8f9fa',
-                    camera=dict(eye=dict(x=1.5, y=1.5, z=1.5))
-                ),
-                height=700,
-                margin=dict(l=0, r=0, t=40, b=0)
+            
+            node_x, node_y = [], []
+            node_text, node_color, node_size = [], [], []
+            
+            color_map = {
+                'PERSON': '#FF6B6B',
+                'PHONE': '#4ECDC4', 
+                'ACCOUNT': '#45B7D1',
+                'CASE': '#FF9FF3',
+                'UNKNOWN': '#888888'
+            }
+            
+            for node in node_list:
+                try:
+                    x, y = pos[node]
+                    node_x.append(x)
+                    node_y.append(y)
+                    attrs = get_node_attributes(G, node)
+                    node_type = attrs.get('type', 'UNKNOWN')
+                    degree = get_degree(G, node)
+                    name = attrs.get('name', attrs.get('number', ''))
+                    node_text.append(f"<b>{node}</b><br>Type: {node_type}<br>Name: {name}<br>Degree: {degree}")
+                    node_color.append(color_map.get(node_type, '#888888'))
+                    node_size.append(10 + degree * 2)
+                except:
+                    continue
+            
+            node_trace = go.Scatter(
+                x=node_x, y=node_y,
+                mode='markers',
+                hoverinfo='text',
+                text=node_text,
+                marker=dict(
+                    size=node_size,
+                    color=node_color,
+                    line=dict(width=1, color='#fff')
+                )
             )
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-        
-    except ImportError:
-        st.warning("Install plotly and networkx for 3D visualization: pip install plotly networkx")
-        _show_network_data(G, node_list)
-    except Exception as e:
-        st.error(f"Error: {str(e)}")
+            
+            fig = go.Figure(
+                data=[edge_trace, node_trace],
+                layout=go.Layout(
+                    title='Criminal Network Graph',
+                    hovermode='closest',
+                    showlegend=False,
+                    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                    plot_bgcolor='#f8f9fa',
+                    height=600,
+                    margin=dict(l=0, r=0, t=40, b=0)
+                )
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+            
+        except Exception as e:
+            st.error(f"Error: {str(e)}")
+            _show_network_data(G, node_list)
+    else:
+        st.warning("Install plotly and networkx for interactive visualization.")
+        st.code("pip install plotly networkx", language="bash")
         _show_network_data(G, node_list)
 
 def _show_network_data(G, node_list):
@@ -1461,7 +1295,7 @@ def render_entity_profile():
     st.markdown("""
     <div style="animation: fadeInUp 0.6s ease-out;">
         <h1 style="font-size: 2.5rem; font-weight: 700; color: #1a1a2e;">👤 Entity Intelligence</h1>
-        <p style="color: #666; margin-top: -0.5rem;">Deep dive into entity details and connections</p>
+        <p style="color: #666; margin-top: -0.5rem;">Deep dive into entity details</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -1545,10 +1379,6 @@ def render_entity_profile():
                 <span class="stat-label">Priority Score</span>
                 <span class="stat-value">{details['priority_score']:.1%}</span>
             </div>
-            <div class="stat-item">
-                <span class="stat-label">Entity Type</span>
-                <span class="stat-value">{attrs.get('type', 'UNKNOWN')}</span>
-            </div>
             <div class="stat-item" style="border-bottom: none;">
                 <span class="stat-label">Evidence Count</span>
                 <span class="stat-value">{len(details.get('evidence', []))}</span>
@@ -1564,7 +1394,7 @@ def render_timeline():
     st.markdown("""
     <div style="animation: fadeInUp 0.6s ease-out;">
         <h1 style="font-size: 2.5rem; font-weight: 700; color: #1a1a2e;">⏱️ Investigation Timeline</h1>
-        <p style="color: #666; margin-top: -0.5rem;">Track network evolution over time</p>
+        <p style="color: #666; margin-top: -0.5rem;">Track network evolution</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -1572,7 +1402,7 @@ def render_timeline():
         st.info("👈 Click 'Generate Sample Data' in the sidebar to get started")
         return
     
-    st.info("📈 Timeline view showing network evolution over time")
+    st.info("📈 Timeline view showing network evolution")
     
     dates = pd.date_range(start=datetime.now() - timedelta(days=180), end=datetime.now(), periods=20)
     entities = np.cumsum(np.random.randint(1, 4, size=len(dates)))
@@ -1584,38 +1414,40 @@ def render_timeline():
         'Relationships': relationships
     })
     
-    try:
-        import plotly.graph_objects as go
-        
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=timeline_df['Date'], 
-            y=timeline_df['Entities'],
-            mode='lines+markers',
-            name='Entities',
-            line=dict(color='#667eea', width=3),
-            marker=dict(size=8)
-        ))
-        fig.add_trace(go.Scatter(
-            x=timeline_df['Date'], 
-            y=timeline_df['Relationships'],
-            mode='lines+markers',
-            name='Relationships',
-            line=dict(color='#ff6b6b', width=3),
-            marker=dict(size=8)
-        ))
-        
-        fig.update_layout(
-            title='Network Evolution Over Time',
-            xaxis_title='Date',
-            yaxis_title='Count',
-            hovermode='x unified',
-            plot_bgcolor='#f8f9fa',
-            height=500
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-    except:
+    if PLOTLY_AVAILABLE:
+        try:
+            import plotly.graph_objects as go
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(
+                x=timeline_df['Date'], 
+                y=timeline_df['Entities'],
+                mode='lines+markers',
+                name='Entities',
+                line=dict(color='#667eea', width=3),
+                marker=dict(size=8)
+            ))
+            fig.add_trace(go.Scatter(
+                x=timeline_df['Date'], 
+                y=timeline_df['Relationships'],
+                mode='lines+markers',
+                name='Relationships',
+                line=dict(color='#ff6b6b', width=3),
+                marker=dict(size=8)
+            ))
+            
+            fig.update_layout(
+                title='Network Evolution Over Time',
+                xaxis_title='Date',
+                yaxis_title='Count',
+                hovermode='x unified',
+                plot_bgcolor='#f8f9fa',
+                height=500
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+        except:
+            st.dataframe(timeline_df, use_container_width=True)
+    else:
         st.dataframe(timeline_df, use_container_width=True)
     
     st.markdown("---")
@@ -1708,7 +1540,7 @@ def render_alerts():
     st.markdown("""
     <div style="animation: fadeInUp 0.6s ease-out;">
         <h1 style="font-size: 2.5rem; font-weight: 700; color: #1a1a2e;">🔔 Alerts & Emergency</h1>
-        <p style="color: #666; margin-top: -0.5rem;">Real-time critical alerts and emergency notifications</p>
+        <p style="color: #666; margin-top: -0.5rem;">Real-time critical alerts</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -1728,25 +1560,18 @@ def render_alerts():
     with col2:
         if st.button("📞 Call Now", use_container_width=True):
             st.success("📞 Emergency call initiated...")
-            add_audit_log("call", "Emergency Services", "Call initiated")
     
     with col3:
-        if st.button("📨 Send Alert to Team", use_container_width=True):
+        if st.button("📨 Send Alert", use_container_width=True):
             st.session_state.alert_sent = True
-            add_audit_log("alert_sent", "Alert System", "Alert sent to team")
-            st.success("✅ Alert sent to all investigators!")
+            st.success("✅ Alert sent to team!")
     
     if st.session_state.emergency_triggered:
         st.markdown("""
         <div class="alert-card-critical" style="text-align: center; padding: 2rem;">
             <div style="font-size: 3rem;">🚨</div>
             <h2 style="color: white;">EMERGENCY ALERT ACTIVATED</h2>
-            <p style="color: rgba(255,255,255,0.9);">All investigators have been notified.</p>
-            <div style="margin-top: 1rem; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-                <span style="background: rgba(255,255,255,0.2); padding: 8px 20px; border-radius: 50px;">🚔 Police Dispatched</span>
-                <span style="background: rgba(255,255,255,0.2); padding: 8px 20px; border-radius: 50px;">📞 Emergency Services Notified</span>
-                <span style="background: rgba(255,255,255,0.2); padding: 8px 20px; border-radius: 50px;">📨 Team Alerted</span>
-            </div>
+            <p style="color: rgba(255,255,255,0.9);">All investigators notified</p>
         </div>
         """, unsafe_allow_html=True)
         st.session_state.emergency_triggered = False
@@ -1761,7 +1586,6 @@ def render_alerts():
     with col2:
         if st.button("🔄 Refresh Alerts", use_container_width=True):
             st.session_state.alerts = generate_alerts(st.session_state.graph)
-            add_audit_log("refresh", "Alerts", "Alerts refreshed")
             st.rerun()
     
     st.markdown("---")
@@ -1775,11 +1599,11 @@ def render_alerts():
         
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("🔴 Critical Alerts", critical_count, delta="Immediate Action")
+            st.metric("🔴 Critical", critical_count)
         with col2:
-            st.metric("🟡 Warnings", warning_count, delta="Review Required")
+            st.metric("🟡 Warnings", warning_count)
         with col3:
-            st.metric("🔵 Information", info_count, delta="Info")
+            st.metric("🔵 Information", info_count)
         
         st.markdown("---")
         
@@ -1796,19 +1620,18 @@ def render_alerts():
             
             st.markdown(f"""
             <div class="{card_class}">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                <div style="display: flex; justify-content: space-between;">
                     <div>
                         <span style="font-size: 1.2rem; font-weight: 700;">{icon} {alert['title']}</span>
                         <br>
                         <span style="opacity: 0.9;">{alert['description']}</span>
                     </div>
                     <div style="text-align: right;">
-                        <span style="font-size: 0.7rem; opacity: 0.8;">{alert['timestamp'][:19]}</span>
+                        <span style="font-size: 0.7rem;">{alert['timestamp'][:19]}</span>
                     </div>
                 </div>
                 <div style="margin-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 0.5rem;">
                     <span style="font-weight: 600;">Action:</span> {alert['action']}
-                    {f"<br>Entity: {alert['entity']}" if alert.get('entity') else ""}
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -1826,7 +1649,7 @@ def render_simulation():
     st.markdown("""
     <div style="animation: fadeInUp 0.6s ease-out;">
         <h1 style="font-size: 2.5rem; font-weight: 700; color: #1a1a2e;">🎯 What-If Simulation</h1>
-        <p style="color: #666; margin-top: -0.5rem;">Simulate network disruption scenarios</p>
+        <p style="color: #666; margin-top: -0.5rem;">Simulate network disruption</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -1861,13 +1684,13 @@ def render_simulation():
         
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.metric("Target Entity", results['target_entity'])
+            st.metric("Target", results['target_entity'])
         with col2:
-            st.metric("Removed Connections", results['removed_connections'])
+            st.metric("Removed", results['removed_connections'])
         with col3:
-            st.metric("Remaining Entities", results['remaining_entities'])
+            st.metric("Remaining", results['remaining_entities'])
         with col4:
-            st.metric("Isolated Entities", results['isolated_entities'])
+            st.metric("Isolated", results['isolated_entities'])
         
         st.markdown("---")
         
@@ -1877,33 +1700,19 @@ def render_simulation():
         
         st.markdown(f"""
         <div style="background: linear-gradient(135deg, #f8f9fa, #e9ecef); padding: 1.5rem; border-radius: 15px; border: 2px dashed #667eea;">
-            <h3>💥 Network Disruption Impact</h3>
+            <h3>💥 Disruption Impact</h3>
             <div style="display: flex; justify-content: space-between; margin: 0.5rem 0;">
-                <span>Disruption Level</span>
+                <span>Level</span>
                 <span style="font-weight: 700; color: {color};">{impact:.1%} ({label})</span>
             </div>
             <div style="height: 12px; border-radius: 10px; overflow: hidden; background: #f0f0f0; margin: 0.5rem 0;">
                 <div style="height: 100%; width: {impact*100}%; background: linear-gradient(90deg, {color}, {color}cc); border-radius: 10px;"></div>
             </div>
-            <div style="margin-top: 0.5rem; color: #888; font-size: 0.85rem;">
+            <div style="margin-top: 0.5rem; color: #888;">
                 <strong>Recommendation:</strong> {results['recommendation']}
             </div>
         </div>
         """, unsafe_allow_html=True)
-        
-        st.markdown("---")
-        
-        st.markdown("### 🔗 Affected Entities")
-        if results['affected_entities']:
-            for entity in results['affected_entities']:
-                st.markdown(f"""
-                <div class="entity-card">
-                    <strong>→ {entity['id']}</strong>
-                    <br><span style="color: #888; font-size: 0.85rem;">Relation: {entity['relation']} | Degree: {entity['degree']}</span>
-                </div>
-                """, unsafe_allow_html=True)
-        else:
-            st.info("No affected entities detected.")
 
 # ============================================================================
 # HEATMAP PAGE
@@ -1916,7 +1725,7 @@ def render_heatmap():
     st.markdown("""
     <div style="animation: fadeInUp 0.6s ease-out;">
         <h1 style="font-size: 2.5rem; font-weight: 700; color: #1a1a2e;">🗺️ Geographic Heatmap</h1>
-        <p style="color: #666; margin-top: -0.5rem;">Visualize crime hotspots and patterns</p>
+        <p style="color: #666; margin-top: -0.5rem;">Visualize crime hotspots</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -1939,69 +1748,23 @@ def render_heatmap():
                     'Type': attrs.get('type'),
                     'Latitude': float(lat),
                     'Longitude': float(lon),
-                    'Intensity': intensity,
-                    'Degree': degree
+                    'Intensity': intensity
                 })
     
     if not heatmap_data:
         heatmap_data = [
-            {'ID': 'L-001', 'Name': 'Mumbai', 'Type': 'LOCATION', 'Latitude': 19.0760, 'Longitude': 72.8777, 'Intensity': 85, 'Degree': 12},
-            {'ID': 'L-002', 'Name': 'Delhi', 'Type': 'LOCATION', 'Latitude': 28.6139, 'Longitude': 77.2090, 'Intensity': 78, 'Degree': 9},
-            {'ID': 'L-003', 'Name': 'Bangalore', 'Type': 'LOCATION', 'Latitude': 12.9716, 'Longitude': 77.5946, 'Intensity': 65, 'Degree': 7},
-            {'ID': 'L-004', 'Name': 'Chennai', 'Type': 'LOCATION', 'Latitude': 13.0827, 'Longitude': 80.2707, 'Intensity': 55, 'Degree': 5},
-            {'ID': 'L-005', 'Name': 'Hyderabad', 'Type': 'LOCATION', 'Latitude': 17.3850, 'Longitude': 78.4867, 'Intensity': 60, 'Degree': 6},
-            {'ID': 'L-006', 'Name': 'Kolkata', 'Type': 'LOCATION', 'Latitude': 22.5726, 'Longitude': 88.3639, 'Intensity': 45, 'Degree': 4},
-            {'ID': 'L-007', 'Name': 'Pune', 'Type': 'LOCATION', 'Latitude': 18.5204, 'Longitude': 73.8567, 'Intensity': 40, 'Degree': 3},
+            {'ID': 'L-001', 'Name': 'Mumbai', 'Type': 'LOCATION', 'Latitude': 19.0760, 'Longitude': 72.8777, 'Intensity': 85},
+            {'ID': 'L-002', 'Name': 'Delhi', 'Type': 'LOCATION', 'Latitude': 28.6139, 'Longitude': 77.2090, 'Intensity': 78},
+            {'ID': 'L-003', 'Name': 'Bangalore', 'Type': 'LOCATION', 'Latitude': 12.9716, 'Longitude': 77.5946, 'Intensity': 65},
+            {'ID': 'L-004', 'Name': 'Chennai', 'Type': 'LOCATION', 'Latitude': 13.0827, 'Longitude': 80.2707, 'Intensity': 55},
+            {'ID': 'L-005', 'Name': 'Hyderabad', 'Type': 'LOCATION', 'Latitude': 17.3850, 'Longitude': 78.4867, 'Intensity': 60},
+            {'ID': 'L-006', 'Name': 'Kolkata', 'Type': 'LOCATION', 'Latitude': 22.5726, 'Longitude': 88.3639, 'Intensity': 45},
+            {'ID': 'L-007', 'Name': 'Pune', 'Type': 'LOCATION', 'Latitude': 18.5204, 'Longitude': 73.8567, 'Intensity': 40},
         ]
         st.info("💡 Showing sample location data.")
     
     df = pd.DataFrame(heatmap_data)
     st.dataframe(df[['ID', 'Name', 'Type', 'Latitude', 'Longitude', 'Intensity']], use_container_width=True)
-    
-    st.markdown("---")
-    st.markdown("### 🗺️ Interactive Location Map")
-    
-    try:
-        import plotly.graph_objects as go
-        
-        fig = go.Figure()
-        fig.add_trace(go.Scattergeo(
-            lon=df['Longitude'],
-            lat=df['Latitude'],
-            text=[f"{row['Name']}<br>Type: {row['Type']}<br>Intensity: {row['Intensity']}<br>Degree: {row['Degree']}" for _, row in df.iterrows()],
-            mode='markers',
-            marker=dict(
-                size=[d['Intensity']/10 + 5 for d in heatmap_data],
-                color=df['Intensity'],
-                colorscale='Reds',
-                showscale=True,
-                colorbar=dict(title="Intensity"),
-                line=dict(width=1, color='white'),
-                opacity=0.9
-            ),
-            hoverinfo='text'
-        ))
-        
-        fig.update_layout(
-            title='Entity Locations Map - India',
-            geo=dict(
-                scope='asia',
-                projection_type='mercator',
-                center=dict(lat=20.5937, lon=78.9629),
-                lonaxis_range=[68, 98],
-                lataxis_range=[8, 38],
-                showland=True,
-                landcolor='#f0f0f0',
-                coastlinecolor='#ccc',
-                countrycolor='#ddd'
-            ),
-            height=600,
-            margin=dict(l=0, r=0, t=40, b=0)
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-    except:
-        st.info("Install plotly for interactive map visualization.")
 
 # ============================================================================
 # EXPORT PAGE
@@ -2011,7 +1774,7 @@ def render_export():
     st.markdown("""
     <div style="animation: fadeInUp 0.6s ease-out;">
         <h1 style="font-size: 2.5rem; font-weight: 700; color: #1a1a2e;">📄 Export Reports</h1>
-        <p style="color: #666; margin-top: -0.5rem;">Generate and download investigation reports</p>
+        <p style="color: #666; margin-top: -0.5rem;">Download investigation reports</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -2024,7 +1787,7 @@ def render_export():
         return
     
     if not has_permission("export_data"):
-        st.warning("🔒 You need 'Analyst' or higher role to export reports.")
+        st.warning("🔒 You need 'Analyst' or higher role.")
         return
     
     st.info("📋 Export investigation data")
@@ -2032,7 +1795,7 @@ def render_export():
     col1, col2 = st.columns(2)
     
     with col1:
-        if st.button("📄 Export as JSON", use_container_width=True):
+        if st.button("📄 Export JSON", use_container_width=True):
             with st.spinner("Generating report..."):
                 G = st.session_state.graph
                 node_list = get_node_list(G)
@@ -2061,7 +1824,7 @@ def render_export():
                 st.success("✅ JSON Report generated!")
     
     with col2:
-        if st.button("📊 Export as CSV", use_container_width=True):
+        if st.button("📊 Export CSV", use_container_width=True):
             with st.spinner("Generating report..."):
                 G = st.session_state.graph
                 node_list = get_node_list(G)
@@ -2086,15 +1849,6 @@ def render_export():
                 )
                 add_audit_log("export", "CSV Report", "Report exported")
                 st.success("✅ CSV Report generated!")
-    
-    st.markdown("---")
-    
-    st.markdown("### 📋 Export History")
-    if st.session_state.export_history:
-        history_df = pd.DataFrame(st.session_state.export_history[-10:])
-        st.dataframe(history_df, use_container_width=True)
-    else:
-        st.info("No export history available.")
 
 # ============================================================================
 # SECURITY PAGE
@@ -2104,7 +1858,7 @@ def render_security():
     st.markdown("""
     <div style="animation: fadeInUp 0.6s ease-out;">
         <h1 style="font-size: 2.5rem; font-weight: 700; color: #1a1a2e;">🔐 Security & Access Control</h1>
-        <p style="color: #666; margin-top: -0.5rem;">Role-Based Access Control and Audit Logs</p>
+        <p style="color: #666; margin-top: -0.5rem;">Role-Based Access Control</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -2146,7 +1900,7 @@ def render_security():
                 </div>
                 <div class="stat-item" style="border-bottom: none;">
                     <span style="color: #4a4a4a;">Description</span>
-                    <span style="font-size: 0.8rem; color: #4a4a4a;">Work without internet, sync when online</span>
+                    <span style="font-size: 0.8rem; color: #4a4a4a;">Work offline, sync when online</span>
                 </div>
             </div>
         </div>
@@ -2155,16 +1909,6 @@ def render_security():
     st.markdown("---")
     
     st.markdown("### 📋 Audit Logs")
-    
-    col1, col2 = st.columns([3, 1])
-    with col2:
-        if st.button("🔄 Refresh Logs", use_container_width=True):
-            st.rerun()
-        if st.button("🗑️ Clear Logs", use_container_width=True):
-            st.session_state.audit_logs = []
-            st.rerun()
-    
-    st.markdown("---")
     
     if st.session_state.audit_logs:
         audit_df = pd.DataFrame(st.session_state.audit_logs[:20])
