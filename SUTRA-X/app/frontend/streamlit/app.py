@@ -1,6 +1,6 @@
 """
 SUTRA-X ULTIMATE FINAL: Complete Criminal Network Intelligence Platform
-SIH 2026 | AI-Powered | GROQ API (FREE) | FULLY WORKING
+SIH 2026 | AI-Powered | GROQ API (SECURE) | FULLY WORKING
 """
 
 import streamlit as st
@@ -13,31 +13,43 @@ import os
 import time
 
 # ============================================================================
-# GROQ API CONFIGURATION
+# GROQ API CONFIGURATION - SECURE
 # ============================================================================
 
-GROQ_API_KEY = "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"
+# Fetch key securely from Streamlit Secrets or Environment Variables
+if "GROQ_API_KEY" in st.secrets:
+    GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
+elif os.environ.get("GROQ_API_KEY"):
+    GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+else:
+    GROQ_API_KEY = None
 
-# Check if groq is available
-try:
-    from groq import Groq
-    GROQ_AVAILABLE = True
-    GROQ_WORKING = False
+GROQ_AVAILABLE = False
+GROQ_WORKING = False
+
+if GROQ_API_KEY:
     try:
-        test_client = Groq(api_key=GROQ_API_KEY)
-        test_response = test_client.chat.completions.create(
-            model="llama3-70b-8192",
-            messages=[{"role": "user", "content": "test"}],
-            max_tokens=5
-        )
-        GROQ_WORKING = True
-        print("✅ Groq API configured and working!")
-    except Exception as e:
-        print(f"⚠️ Groq test failed: {e}")
-except ImportError:
-    GROQ_AVAILABLE = False
-    GROQ_WORKING = False
-    print("⚠️ Groq library not installed.")
+        from groq import Groq
+        GROQ_AVAILABLE = True
+        
+        # Test the connection
+        try:
+            test_client = Groq(api_key=GROQ_API_KEY)
+            test_response = test_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": "ping"}],
+                max_tokens=5
+            )
+            GROQ_WORKING = True
+            print("✅ Groq API configured and responding successfully!")
+        except Exception as e:
+            GROQ_WORKING = False
+            print(f"⚠️ Groq live connection failed: {e}")
+    except ImportError:
+        GROQ_AVAILABLE = False
+        print("⚠️ Groq library not found.")
+else:
+    print("⚠️ Missing GROQ_API_KEY. Please provide it via Streamlit Secrets.")
 
 # ============================================================================
 # CHECK PLOTLY AND NETWORKX
@@ -45,6 +57,7 @@ except ImportError:
 
 try:
     import plotly.graph_objects as go
+    import plotly.express as px
     PLOTLY_AVAILABLE = True
 except ImportError:
     PLOTLY_AVAILABLE = False
@@ -461,11 +474,11 @@ def generate_simulation(G, target_entity):
     return simulation_results
 
 # ============================================================================
-# AI COPILOT WITH GROQ API
+# AI COPILOT WITH GROQ API - SECURE
 # ============================================================================
 
 def get_ai_response(query, context):
-    """Get AI response using Groq API"""
+    """Get AI response using Groq API - SECURE"""
     
     # Check cache
     cache_key = f"{query}_{len(context)}"
@@ -493,13 +506,13 @@ Be specific and reference actual entities in the network.
 Keep responses concise and practical for investigators.
 """
     
-    # Try Groq API
-    if GROQ_AVAILABLE and GROQ_WORKING:
+    # Try Groq API with secure key
+    if GROQ_AVAILABLE and GROQ_WORKING and GROQ_API_KEY:
         try:
             client = Groq(api_key=GROQ_API_KEY)
             
             response = client.chat.completions.create(
-                model="llama3-70b-8192",
+                model="llama-3.3-70b-versatile",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": query}
@@ -512,8 +525,8 @@ Keep responses concise and practical for investigators.
             
             result = {
                 'response': ai_response,
-                'sources': ['Groq LLaMA3-70B (FREE)'],
-                'confidence': 0.88,
+                'sources': ['Groq LLaMA-3.3-70B (FREE)'],
+                'confidence': 0.90,
                 'using_api': True
             }
             st.session_state.ai_response_cache[cache_key] = result
@@ -551,14 +564,15 @@ def get_fallback_response(query, context):
             top = sorted(entities, key=lambda x: x.get('degree', 0), reverse=True)[:5]
             names = [f"{e.get('name', e.get('id', 'Unknown'))} (degree: {e.get('degree', 0)})" for e in top]
             responses.append(f"🔍 **Key Entities:** {', '.join(names)}")
+            responses.append("💡 These are the most connected individuals in the network.")
         else:
-            responses.append("🔍 No entities found.")
+            responses.append("🔍 No entities found in the network.")
     
     if "connection" in query_lower or "link" in query_lower:
-        responses.append(f"🔗 {total_edges} relationships detected.")
+        responses.append(f"🔗 {total_edges} relationships detected in the network.")
     
     if "pattern" in query_lower:
-        responses.append("📊 Financial patterns suggest potential money laundering.")
+        responses.append("📊 Financial transaction patterns suggest potential money laundering.")
     
     if "priority" in query_lower:
         if priority_entities:
@@ -568,6 +582,11 @@ def get_fallback_response(query, context):
         responses.append(f"💡 Network contains {total_nodes} entities and {total_edges} relationships.")
         if entity_types:
             responses.append(f"📊 Entity types: {', '.join([f'{k}: {v}' for k, v in entity_types.items()])}")
+        responses.append("")
+        responses.append("💡 Try asking about:")
+        responses.append("• 'Who are the key entities?'")
+        responses.append("• 'What patterns do you see?'")
+        responses.append("• 'Which entities are most important?'")
     
     return '\n'.join(responses)
 
@@ -662,6 +681,17 @@ st.markdown("""
         font-weight: 700;
     }
     
+    .feature-tag {
+        display: inline-block;
+        background: rgba(255,255,255,0.1);
+        backdrop-filter: blur(10px);
+        color: rgba(255,255,255,0.8);
+        padding: 6px 16px;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    
     .metric-card {
         background: white;
         padding: 1.5rem;
@@ -686,7 +716,7 @@ st.markdown("""
         font-weight: 600;
         display: inline-block;
     }
-    .status-high { background: #ff6b6b; color: white; }
+    .status-high { background: #ff6b6b; color: white; animation: pulse 1.5s infinite; }
     .status-medium { background: #feca57; color: #1a1a2e; }
     .status-low { background: #48dbfb; color: #1a1a2e; }
     
@@ -736,6 +766,26 @@ st.markdown("""
         border-radius: 10px;
     }
     
+    .glow-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        border: 1px solid rgba(102,126,234,0.1);
+        transition: all 0.3s ease;
+        animation: glow 4s infinite;
+        height: 100%;
+        text-align: center;
+    }
+    .glow-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 30px rgba(102,126,234,0.2);
+        border-color: #667eea;
+    }
+    .glow-card .icon { font-size: 3rem; margin-bottom: 0.5rem; }
+    .glow-card h3 { color: #1a1a2e; font-size: 1.2rem; margin: 0.5rem 0; }
+    .glow-card p { color: #4a4a4a; font-size: 0.9rem; }
+    
     .rag-response {
         background: #f8f9fa;
         padding: 1.5rem;
@@ -745,6 +795,24 @@ st.markdown("""
         box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
     .rag-response p { color: #1a1a2e; line-height: 1.6; }
+    .rag-response strong { color: #1a1a2e; }
+    
+    .quick-stats {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    }
+    .quick-stats .stat-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #eee;
+        color: #1a1a2e;
+    }
+    .quick-stats .stat-item:last-child { border-bottom: none; }
+    .quick-stats .stat-label { color: #4a4a4a; }
+    .quick-stats .stat-value { font-weight: 700; color: #1a1a2e; }
     
     .footer {
         text-align: center;
@@ -778,7 +846,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================================================
-# SIDEBAR - FIXED (Removed duplicate navigation)
+# SIDEBAR
 # ============================================================================
 
 with st.sidebar:
@@ -803,11 +871,16 @@ with st.sidebar:
     st.markdown("### 🤖 AI Status")
     if GROQ_AVAILABLE and GROQ_WORKING:
         st.success("✅ Groq API Connected (FREE)")
-        st.caption("Model: LLaMA3-70B-8192")
+        st.caption("Model: llama-3.3-70b-versatile")
+        st.caption("Status: Active")
+    elif GROQ_AVAILABLE and not GROQ_WORKING:
+        st.warning("⚠️ Groq Installed but Not Working")
+        st.caption("Check API key in secrets.toml")
+        st.caption("Get new key: console.groq.com")
     else:
-        st.warning("⚠️ Groq Not Available")
-        st.caption("Add 'groq' to requirements.txt")
-        st.code("groq>=0.3.0", language="bash")
+        st.error("❌ Groq Not Available")
+        st.caption("Add to requirements.txt: groq>=0.9.0")
+        st.info("💡 Set GROQ_API_KEY in .streamlit/secrets.toml")
     
     st.markdown("---")
     
@@ -850,10 +923,8 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # Navigation - FIXED: Removed duplicate "Dashboard"
+    # Navigation
     st.markdown("### 📌 Navigation")
-    
-    # Define pages with unique names (no duplicates)
     nav_pages = [
         ("📊 Dashboard", "Dashboard"),
         ("🌐 Network Graph", "Network Graph"),
@@ -1045,10 +1116,12 @@ def render_ai_copilot():
     st.markdown("### 🤖 AI Status")
     if GROQ_AVAILABLE and GROQ_WORKING:
         st.success("✅ Groq API Connected (FREE) - Real AI Responses")
-        st.caption("Model: LLaMA3-70B-8192")
+        st.caption("Model: llama-3.3-70b-versatile")
+        st.caption("Status: Active ✅")
     else:
         st.warning("⚠️ Groq Not Available - Using Fallback Mode")
-        st.caption("Add 'groq>=0.3.0' to requirements.txt")
+        st.caption("1. Set GROQ_API_KEY in .streamlit/secrets.toml")
+        st.caption("2. Add 'groq>=0.9.0' to requirements.txt")
     
     st.info("🧠 Ask questions about your investigation")
     
@@ -1123,7 +1196,7 @@ def render_ai_copilot():
             if result.get('using_api', False):
                 st.markdown(f"""
                 <div class="rag-response" style="border-left-color: #2ed573;">
-                    <strong>🤖 AI Response (Groq):</strong>
+                    <strong>🤖 AI Response (Groq LLaMA-3.3-70B):</strong>
                     <p style="margin-top: 0.5rem; white-space: pre-wrap;">{result['response']}</p>
                     <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 0.5rem;">
                         <span style="font-size: 0.7rem; color: #888;">Sources:</span>
@@ -1143,7 +1216,10 @@ def render_ai_copilot():
                         <span style="background: #ffa50220; color: #ffa502; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">⚠️ Fallback</span>
                     </div>
                     <div style="margin-top: 0.5rem; padding: 0.5rem; background: #fff3cd; border-radius: 8px; font-size: 0.85rem;">
-                        💡 Add 'groq' to requirements.txt for real AI responses
+                        💡 <strong>To enable real AI:</strong><br>
+                        1. Create .streamlit/secrets.toml with GROQ_API_KEY<br>
+                        2. Get free key from console.groq.com<br>
+                        3. Add 'groq>=0.9.0' to requirements.txt
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
