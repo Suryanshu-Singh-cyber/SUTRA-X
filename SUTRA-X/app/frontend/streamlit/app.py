@@ -1,7 +1,6 @@
 """
-SUTRA-X ULTIMATE FINAL: Complete Production-Ready Criminal Network Intelligence Platform
-SIH 2026 | AI-Powered Criminal Network Analysis System
-OpenAI 1.0.0+ Compatible
+SUTRA-X ULTIMATE FINAL: Complete Criminal Network Intelligence Platform
+SIH 2026 | AI-Powered | GROQ API (FREE) | Working 100%
 """
 
 import streamlit as st
@@ -11,64 +10,27 @@ from datetime import datetime, timedelta
 import random
 import json
 import os
-import sys
-import re
-import hashlib
-import base64
-from pathlib import Path
 import time
-import math
+from pathlib import Path
 
 # ============================================================================
-# REAL OPENAI API CONFIGURATION - VERSION 1.0.0+ COMPATIBLE
+# GROQ API CONFIGURATION (FREE - WORKING)
 # ============================================================================
 
-OPENAI_API_KEY = "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"
+GROQ_API_KEY = "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"
 
-# Try to import and configure openai for 1.0.0+
+# Try to import groq
 try:
-    import openai
-    
-    # Check if it's the new version (1.0.0+)
-    if hasattr(openai, 'OpenAI'):
-        # New version - using client
-        client = openai.OpenAI(api_key=OPENAI_API_KEY)
-        OPENAI_AVAILABLE = True
-        OPENAI_MODEL = "gpt-3.5-turbo"
-        print("✅ OpenAI API (v1.0.0+) configured successfully!")
-    else:
-        # Old version
-        openai.api_key = OPENAI_API_KEY
-        OPENAI_AVAILABLE = True
-        OPENAI_MODEL = "gpt-3.5-turbo"
-        print("✅ OpenAI API (old version) configured successfully!")
-        
+    from groq import Groq
+    GROQ_AVAILABLE = True
+    client = Groq(api_key=GROQ_API_KEY)
+    print("✅ Groq API configured successfully!")
 except ImportError:
-    OPENAI_AVAILABLE = False
-    OPENAI_MODEL = None
-    print("⚠️ OpenAI library not installed. Install with: pip install openai")
+    GROQ_AVAILABLE = False
+    print("⚠️ Groq library not installed. Install with: pip install groq")
 except Exception as e:
-    OPENAI_AVAILABLE = False
-    OPENAI_MODEL = None
-    print(f"⚠️ OpenAI error: {e}")
-
-# ============================================================================
-# FALLBACK FOR NETWORKX & PLOTLY
-# ============================================================================
-
-try:
-    import networkx as nx
-    NETWORKX_AVAILABLE = True
-except ImportError:
-    NETWORKX_AVAILABLE = False
-
-try:
-    import plotly.graph_objects as go
-    import plotly.express as px
-    from plotly.subplots import make_subplots
-    PLOTLY_AVAILABLE = True
-except ImportError:
-    PLOTLY_AVAILABLE = False
+    GROQ_AVAILABLE = False
+    print(f"⚠️ Groq error: {e}")
 
 # ============================================================================
 # PAGE CONFIGURATION
@@ -82,348 +44,43 @@ st.set_page_config(
 )
 
 # ============================================================================
-# MULTI-LANGUAGE SUPPORT - 7 LANGUAGES
-# ============================================================================
-
-LANGUAGES = {
-    "en": {
-        "name": "English",
-        "flag": "🇬🇧",
-        "nav_dashboard": "📊 Dashboard",
-        "nav_graph": "🌐 Network Graph",
-        "nav_entity": "👤 Entity Profile",
-        "nav_timeline": "⏱️ Timeline",
-        "nav_crosscase": "🔗 Cross-Case Discovery",
-        "nav_ai": "🤖 AI Copilot",
-        "nav_alerts": "🔔 Alerts & Emergency",
-        "nav_simulation": "🎯 What-If Simulation",
-        "nav_heatmap": "🗺️ Heatmap",
-        "nav_export": "📄 Export",
-        "nav_security": "🔐 Security",
-        "dashboard_title": "📊 Command Center",
-        "dashboard_sub": "Real-time intelligence dashboard",
-        "total_entities": "Total Entities",
-        "relationships": "Relationships",
-        "priority_leads": "Priority Leads",
-        "cross_case_links": "Cross-Case Links",
-        "active_alerts": "Active Alerts",
-        "priority_leads_title": "🚨 Priority Investigation Leads",
-        "no_priority": "No priority leads found",
-        "recent_activity": "Recent Activity",
-        "search_entity": "Search Entity",
-        "view_profile": "View Profile",
-        "connections": "Connections",
-        "properties": "Properties",
-        "recommendations": "Recommendations",
-        "evidence": "Evidence",
-        "priority_high": "HIGH",
-        "priority_medium": "MEDIUM",
-        "priority_low": "LOW",
-        "generate_data": "Generate Sample Data",
-        "loading": "Loading...",
-        "success": "Success!",
-        "error": "Error",
-        "no_data": "No data loaded",
-        "view": "View",
-        "alerts_title": "🔔 Alerts & Emergency Response",
-        "alerts_sub": "Real-time critical alerts and emergency notifications",
-        "critical_alerts": "Critical Alerts",
-        "warning_alerts": "Warnings",
-        "info_alerts": "Information",
-        "emergency_call": "Emergency Call",
-        "call_now": "Call Now",
-        "send_alert": "Send Alert to Team",
-        "alert_sent": "Alert sent to all investigators!",
-        "call_initiated": "Emergency call initiated...",
-        "online": "Online",
-        "offline": "Offline",
-        "data_loaded": "Data Loaded",
-        "no_data_loaded": "No data loaded",
-        "heatmap_title": "🗺️ Geographic Heatmap",
-        "heatmap_sub": "Visualize crime hotspots and patterns",
-        "export_title": "📄 Export Reports",
-        "export_sub": "Generate and download investigation reports",
-        "export_json": "Export as JSON",
-        "security_title": "🔐 Security & Access Control",
-        "security_sub": "Role-Based Access Control and Audit Logs",
-        "user_role": "User Role",
-        "audit_logs": "Audit Logs",
-        "rbac_info": "Role-Based Access Control",
-        "offline_mode": "Offline Mode",
-        "offline_desc": "Work without internet, sync when online",
-        "login": "Login",
-        "username": "Username",
-        "password": "Password",
-        "logout": "Logout",
-        "heatmap_intensity": "Intensity",
-        "heatmap_locations": "Locations",
-        "export_history": "Export History",
-        "generated_at": "Generated At",
-        "file_name": "File Name",
-        "download": "Download",
-        "api_status": "OpenAI API Status",
-        "api_connected": "✅ Connected",
-        "api_disconnected": "⚠️ Not Connected",
-        "made_with": "Made with ❤️ for Smart India Hackathon 2026",
-        "version": "v3.0.0",
-        "disclaimer": "⚠️ This is an AI-generated analysis. All findings should be verified by human investigators.",
-        "quick_questions": "Quick Questions",
-        "custom_query": "Custom Query",
-        "analyze": "Analyze",
-        "ask_question": "Ask your question",
-        "ai_response": "AI Response",
-        "key_findings": "Key Findings",
-        "actionable_insights": "Actionable Insights",
-        "next_steps": "Next Steps",
-        "relevant_entities": "Relevant Entities",
-        "ai_title": "🤖 AI Copilot",
-        "ai_sub": "Real OpenAI-powered investigation assistant",
-        "simulation_title": "🎯 What-If Simulation",
-        "simulation_sub": "Simulate network disruption scenarios",
-        "select_entity": "Select Entity to Remove",
-        "run_simulation": "Run Simulation",
-        "simulation_results": "Simulation Results",
-        "target_entity": "Target Entity",
-        "removed_connections": "Removed Connections",
-        "remaining_entities": "Remaining Entities",
-        "isolated_entities": "Isolated Entities",
-        "disruption_impact": "Network Disruption Impact",
-        "disruption_level": "Disruption Level",
-        "affected_entities": "Affected Entities",
-        "recommendation_label": "Recommendation",
-        "crosscase_title": "🔗 Cross-Case Connection Discovery",
-        "crosscase_sub": "Uncover hidden connections between cases",
-        "shared_entities": "Shared Entities",
-        "confidence": "Confidence",
-        "total_connections": "Total Connections",
-        "shared_persons": "Shared Persons",
-        "entity_intelligence": "👤 Entity Intelligence",
-        "quick_stats": "Quick Stats",
-        "direct_connections": "Direct Connections",
-        "network_degree": "Network Degree",
-        "priority_score": "Priority Score",
-        "timeline_title": "⏱️ Investigation Timeline",
-        "timeline_sub": "Track network evolution over time",
-        "key_events": "Key Events",
-        "security_roles": {
-            "admin": "Administrator",
-            "investigator": "Investigator",
-            "analyst": "Analyst",
-            "viewer": "Viewer"
-        },
-        "audit_actions": {
-            "login": "Login",
-            "logout": "Logout",
-            "view": "View Entity",
-            "export": "Export Report",
-            "update": "Update Data",
-            "delete": "Delete Entity",
-            "alert": "Alert Triggered",
-            "simulation": "Simulation Run",
-            "ai_query": "AI Query",
-            "data_generate": "Data Generated",
-            "mode_change": "Mode Changed",
-            "emergency": "Emergency Triggered"
-        }
-    },
-    "hi": {
-        "name": "हिंदी",
-        "flag": "🇮🇳",
-        "nav_dashboard": "📊 डैशबोर्ड",
-        "nav_graph": "🌐 नेटवर्क ग्राफ",
-        "nav_entity": "👤 इकाई प्रोफ़ाइल",
-        "nav_timeline": "⏱️ समयरेखा",
-        "nav_crosscase": "🔗 क्रॉस-केस खोज",
-        "nav_ai": "🤖 एआई सहायक",
-        "nav_alerts": "🔔 अलर्ट और आपातकाल",
-        "nav_simulation": "🎯 क्या-अगर सिमुलेशन",
-        "nav_heatmap": "🗺️ हीटमैप",
-        "nav_export": "📄 निर्यात",
-        "nav_security": "🔐 सुरक्षा",
-        "dashboard_title": "📊 कमांड सेंटर",
-        "dashboard_sub": "वास्तविक समय खुफिया डैशबोर्ड",
-        "total_entities": "कुल इकाइयां",
-        "relationships": "संबंध",
-        "priority_leads": "प्राथमिकता लीड",
-        "cross_case_links": "क्रॉस-केस लिंक",
-        "active_alerts": "सक्रिय अलर्ट",
-        "priority_leads_title": "🚨 प्राथमिकता जांच लीड",
-        "no_priority": "कोई प्राथमिकता लीड नहीं मिली",
-        "recent_activity": "हाल की गतिविधि",
-        "search_entity": "इकाई खोजें",
-        "view_profile": "प्रोफ़ाइल देखें",
-        "connections": "कनेक्शन",
-        "properties": "गुण",
-        "recommendations": "सिफारिशें",
-        "evidence": "साक्ष्य",
-        "priority_high": "उच्च",
-        "priority_medium": "मध्यम",
-        "priority_low": "निम्न",
-        "generate_data": "नमूना डेटा उत्पन्न करें",
-        "loading": "लोड हो रहा है...",
-        "success": "सफलता!",
-        "error": "त्रुटि",
-        "no_data": "कोई डेटा लोड नहीं",
-        "view": "देखें",
-        "alerts_title": "🔔 अलर्ट और आपातकालीन प्रतिक्रिया",
-        "alerts_sub": "वास्तविक समय महत्वपूर्ण अलर्ट और आपातकालीन सूचनाएं",
-        "critical_alerts": "गंभीर अलर्ट",
-        "warning_alerts": "चेतावनी",
-        "info_alerts": "सूचना",
-        "emergency_call": "आपातकालीन कॉल",
-        "call_now": "अभी कॉल करें",
-        "send_alert": "टीम को अलर्ट भेजें",
-        "alert_sent": "सभी जांचकर्ताओं को अलर्ट भेजा गया!",
-        "call_initiated": "आपातकालीन कॉल शुरू की गई...",
-        "online": "ऑनलाइन",
-        "offline": "ऑफलाइन",
-        "data_loaded": "डेटा लोड हुआ",
-        "no_data_loaded": "कोई डेटा लोड नहीं",
-        "heatmap_title": "🗺️ भौगोलिक हीटमैप",
-        "heatmap_sub": "अपराध हॉटस्पॉट और पैटर्न देखें",
-        "export_title": "📄 रिपोर्ट निर्यात",
-        "export_sub": "जांच रिपोर्ट जनरेट और डाउनलोड करें",
-        "export_json": "JSON के रूप में निर्यात करें",
-        "security_title": "🔐 सुरक्षा और पहुंच नियंत्रण",
-        "security_sub": "रोल-आधारित पहुंच नियंत्रण और ऑडिट लॉग",
-        "user_role": "उपयोगकर्ता भूमिका",
-        "audit_logs": "ऑडिट लॉग",
-        "rbac_info": "रोल-आधारित पहुंच नियंत्रण",
-        "offline_mode": "ऑफलाइन मोड",
-        "offline_desc": "इंटरनेट के बिना काम करें, ऑनलाइन होने पर सिंक करें",
-        "login": "लॉगिन",
-        "username": "उपयोगकर्ता नाम",
-        "password": "पासवर्ड",
-        "logout": "लॉगआउट",
-        "heatmap_intensity": "तीव्रता",
-        "heatmap_locations": "स्थान",
-        "export_history": "निर्यात इतिहास",
-        "generated_at": "जनरेट किया गया",
-        "file_name": "फ़ाइल नाम",
-        "download": "डाउनलोड",
-        "api_status": "OpenAI API स्थिति",
-        "api_connected": "✅ कनेक्टेड",
-        "api_disconnected": "⚠️ कनेक्टेड नहीं",
-        "made_with": "स्मार्ट इंडिया हैकथॉन 2026 के लिए ❤️ के साथ बनाया गया",
-        "version": "v3.0.0",
-        "disclaimer": "⚠️ यह एक एआई-जनित विश्लेषण है। सभी निष्कर्षों को मानव जांचकर्ताओं द्वारा सत्यापित किया जाना चाहिए।",
-        "quick_questions": "त्वरित प्रश्न",
-        "custom_query": "कस्टम प्रश्न",
-        "analyze": "विश्लेषण करें",
-        "ask_question": "अपना प्रश्न पूछें",
-        "ai_response": "एआई प्रतिक्रिया",
-        "key_findings": "मुख्य निष्कर्ष",
-        "actionable_insights": "कार्रवाई योग्य अंतर्दृष्टि",
-        "next_steps": "अगले कदम",
-        "relevant_entities": "प्रासंगिक इकाइयां",
-        "ai_title": "🤖 एआई सहायक",
-        "ai_sub": "वास्तविक OpenAI-संचालित जांच सहायक",
-        "simulation_title": "🎯 क्या-अगर सिमुलेशन",
-        "simulation_sub": "नेटवर्क व्यवधान परिदृश्यों का अनुकरण करें",
-        "select_entity": "हटाने के लिए इकाई चुनें",
-        "run_simulation": "सिमुलेशन चलाएं",
-        "simulation_results": "सिमुलेशन परिणाम",
-        "target_entity": "लक्ष्य इकाई",
-        "removed_connections": "हटाए गए कनेक्शन",
-        "remaining_entities": "शेष इकाइयां",
-        "isolated_entities": "पृथक इकाइयां",
-        "disruption_impact": "नेटवर्क व्यवधान प्रभाव",
-        "disruption_level": "व्यवधान स्तर",
-        "affected_entities": "प्रभावित इकाइयां",
-        "recommendation_label": "सिफारिश",
-        "crosscase_title": "🔗 क्रॉस-केस कनेक्शन खोज",
-        "crosscase_sub": "मामलों के बीच छिपे कनेक्शन का पता लगाएं",
-        "shared_entities": "साझा इकाइयां",
-        "confidence": "विश्वास",
-        "total_connections": "कुल कनेक्शन",
-        "shared_persons": "साझा व्यक्ति",
-        "entity_intelligence": "👤 इकाई खुफिया",
-        "quick_stats": "त्वरित आंकड़े",
-        "direct_connections": "प्रत्यक्ष कनेक्शन",
-        "network_degree": "नेटवर्क डिग्री",
-        "priority_score": "प्राथमिकता स्कोर",
-        "timeline_title": "⏱️ जांच समयरेखा",
-        "timeline_sub": "समय के साथ नेटवर्क विकास ट्रैक करें",
-        "key_events": "मुख्य घटनाएं",
-        "security_roles": {
-            "admin": "प्रशासक",
-            "investigator": "जांचकर्ता",
-            "analyst": "विश्लेषक",
-            "viewer": "दर्शक"
-        },
-        "audit_actions": {
-            "login": "लॉगिन",
-            "logout": "लॉगआउट",
-            "view": "इकाई देखें",
-            "export": "रिपोर्ट निर्यात",
-            "update": "डेटा अपडेट",
-            "delete": "इकाई हटाएं",
-            "alert": "अलर्ट ट्रिगर",
-            "simulation": "सिमुलेशन चलाएं",
-            "ai_query": "AI प्रश्न",
-            "data_generate": "डेटा जनरेट",
-            "mode_change": "मोड बदला",
-            "emergency": "आपातकाल ट्रिगर"
-        }
-    }
-}
-
-# Add all languages with English fallback
-for lang in ["ta", "te", "bn", "ml", "ur"]:
-    if lang not in LANGUAGES:
-        LANGUAGES[lang] = LANGUAGES["en"].copy()
-        LANGUAGES[lang]["name"] = lang
-        LANGUAGES[lang]["flag"] = "🇮🇳"
-
-def get_text(key):
-    lang = st.session_state.get('language', 'en')
-    if lang in LANGUAGES and key in LANGUAGES[lang] and LANGUAGES[lang][key]:
-        return LANGUAGES[lang][key]
-    return LANGUAGES['en'].get(key, key)
-
-# ============================================================================
 # SESSION STATE
 # ============================================================================
 
-def init_session_state():
-    if 'data_loaded' not in st.session_state:
-        st.session_state.data_loaded = False
-    if 'graph' not in st.session_state:
-        st.session_state.graph = None
-    if 'selected_entity' not in st.session_state:
-        st.session_state.selected_entity = None
-    if 'current_page' not in st.session_state:
-        st.session_state.current_page = "📊 Dashboard"
-    if 'entity_list' not in st.session_state:
-        st.session_state.entity_list = []
-    if 'language' not in st.session_state:
-        st.session_state.language = "en"
-    if 'alerts' not in st.session_state:
-        st.session_state.alerts = []
-    if 'simulation_results' not in st.session_state:
-        st.session_state.simulation_results = None
-    if 'emergency_triggered' not in st.session_state:
-        st.session_state.emergency_triggered = False
-    if 'alert_sent' not in st.session_state:
-        st.session_state.alert_sent = False
-    if 'offline_mode' not in st.session_state:
-        st.session_state.offline_mode = False
-    if 'user_role' not in st.session_state:
-        st.session_state.user_role = "viewer"
-    if 'audit_logs' not in st.session_state:
-        st.session_state.audit_logs = []
-    if 'export_history' not in st.session_state:
-        st.session_state.export_history = []
-    if 'authenticated' not in st.session_state:
-        st.session_state.authenticated = False
-    if 'current_user' not in st.session_state:
-        st.session_state.current_user = None
-    if 'ai_query' not in st.session_state:
-        st.session_state.ai_query = ""
-    if 'ai_response_cache' not in st.session_state:
-        st.session_state.ai_response_cache = {}
-
-init_session_state()
+if 'data_loaded' not in st.session_state:
+    st.session_state.data_loaded = False
+if 'graph' not in st.session_state:
+    st.session_state.graph = None
+if 'selected_entity' not in st.session_state:
+    st.session_state.selected_entity = None
+if 'current_page' not in st.session_state:
+    st.session_state.current_page = "Dashboard"
+if 'entity_list' not in st.session_state:
+    st.session_state.entity_list = []
+if 'alerts' not in st.session_state:
+    st.session_state.alerts = []
+if 'authenticated' not in st.session_state:
+    st.session_state.authenticated = False
+if 'current_user' not in st.session_state:
+    st.session_state.current_user = None
+if 'user_role' not in st.session_state:
+    st.session_state.user_role = "viewer"
+if 'ai_query' not in st.session_state:
+    st.session_state.ai_query = ""
+if 'audit_logs' not in st.session_state:
+    st.session_state.audit_logs = []
+if 'export_history' not in st.session_state:
+    st.session_state.export_history = []
+if 'simulation_results' not in st.session_state:
+    st.session_state.simulation_results = None
+if 'emergency_triggered' not in st.session_state:
+    st.session_state.emergency_triggered = False
+if 'alert_sent' not in st.session_state:
+    st.session_state.alert_sent = False
+if 'offline_mode' not in st.session_state:
+    st.session_state.offline_mode = False
+if 'ai_response_cache' not in st.session_state:
+    st.session_state.ai_response_cache = {}
 
 # ============================================================================
 # RBAC SYSTEM
@@ -524,23 +181,20 @@ class SimpleGraph:
 # ============================================================================
 
 def generate_sample_network():
-    if NETWORKX_AVAILABLE:
+    try:
+        import networkx as nx
         G = nx.Graph()
-    else:
+    except:
         G = SimpleGraph()
     
     first_names = ['Raj', 'Amit', 'Priya', 'Suresh', 'Anita', 'Vikram', 'Neha', 'Rahul', 
-                   'Sunita', 'Mohan', 'Geeta', 'Arjun', 'Kavita', 'Deepak', 'Anjali', 
-                   'Sanjay', 'Meera', 'Ravi', 'Pooja', 'Kumar', 'Ashok', 'Preeti',
-                   'Vijay', 'Nisha', 'Ramesh', 'Sneha', 'Mahesh', 'Jyoti']
-    
+                   'Sunita', 'Mohan', 'Geeta', 'Arjun', 'Kavita', 'Deepak', 'Anjali']
     last_names = ['Sharma', 'Singh', 'Patel', 'Reddy', 'Rao', 'Joshi', 'Gupta', 'Verma', 
                   'Kumar', 'Nair', 'Mehta', 'Choudhary', 'Yadav', 'Khan', 'Das']
-    
     locations = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Hyderabad', 'Pune', 'Kolkata']
     
     persons = []
-    for i in range(30):
+    for i in range(25):
         name = f"{random.choice(first_names)} {random.choice(last_names)}"
         person_id = f"P-{i+1:04d}"
         G.add_node(person_id, type='PERSON', name=name, 
@@ -551,183 +205,78 @@ def generate_sample_network():
                    longitude=68.7 + random.random() * 28.6)
         persons.append(person_id)
     
-    # ... (rest of data generation - same as before)
-    # For brevity, I'll continue with the full code in the next part
+    phones = []
+    for i in range(15):
+        phone_id = f"PH-{i+1:04d}"
+        G.add_node(phone_id, type='PHONE', number=f"98{random.randint(10000000, 99999999)}")
+        phones.append(phone_id)
+        owner = random.choice(persons)
+        G.add_edge(owner, phone_id, type='OWNS', confidence=0.8)
+    
+    accounts = []
+    for i in range(12):
+        account_id = f"ACC-{i+1:04d}"
+        G.add_node(account_id, type='ACCOUNT', bank=random.choice(['SBI', 'HDFC', 'ICICI', 'Axis']))
+        accounts.append(account_id)
+        owner = random.choice(persons)
+        G.add_edge(owner, account_id, type='OWNS', confidence=0.7)
+    
+    cases = []
+    case_titles = ['Drug Trafficking Ring', 'Financial Fraud Network', 'Arms Dealing', 'Cyber Crime Syndicate', 'Money Laundering']
+    for i in range(5):
+        case_id = f"CASE-{i+1:03d}"
+        G.add_node(case_id, type='CASE', title=case_titles[i],
+                   status=random.choice(['Active', 'Pending', 'Under Review']))
+        cases.append(case_id)
+        for _ in range(random.randint(2, 4)):
+            person = random.choice(persons)
+            G.add_edge(case_id, person, type='INVOLVED', confidence=0.6 + random.random()*0.3)
+    
+    for _ in range(20):
+        caller = random.choice(phones)
+        receiver = random.choice(phones)
+        if caller != receiver:
+            G.add_edge(caller, receiver, type='CALLED', duration=random.randint(30, 600))
+    
+    for _ in range(15):
+        from_acc = random.choice(accounts)
+        to_acc = random.choice(accounts)
+        if from_acc != to_acc:
+            G.add_edge(from_acc, to_acc, type='TRANSACTION', amount=random.randint(5000, 500000))
     
     return G
 
 # ============================================================================
-# COMPLETE AI COPILOT WITH OPENAI 1.0.0+ SUPPORT
-# ============================================================================
-
-def get_ai_response(query, context):
-    """Get real AI response using OpenAI API - 1.0.0+ Compatible"""
-    
-    # Check cache
-    cache_key = f"{query}_{len(context)}"
-    if cache_key in st.session_state.ai_response_cache:
-        return st.session_state.ai_response_cache[cache_key]
-    
-    # Build context
-    context_str = f"""
-SUTRA-X CRIMINAL NETWORK ANALYSIS PLATFORM
-
-NETWORK OVERVIEW:
-- Total Entities: {context.get('total_nodes', 0)}
-- Total Relationships: {context.get('total_edges', 0)}
-- Entity Types: {context.get('entity_types', 'Not specified')}
-- High Priority Entities: {context.get('priority_entities', 'None')}
-
-ENTITY DETAILS:
-{context.get('entity_details', 'No specific entity details provided')}
-"""
-    
-    system_prompt = f"""You are SUTRA-X AI, an advanced criminal network investigation assistant for Indian law enforcement.
-
-CONTEXT:
-{context_str}
-
-Provide evidence-backed, actionable insights for criminal network analysis."""
-    
-    # Try OpenAI API - 1.0.0+ compatible
-    if OPENAI_AVAILABLE:
-        try:
-            # Check if we have the new client
-            if hasattr(openai, 'OpenAI'):
-                client = openai.OpenAI(api_key=OPENAI_API_KEY)
-                response = client.chat.completions.create(
-                    model="gpt-3.5-turbo",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": query}
-                    ],
-                    temperature=0.7,
-                    max_tokens=600
-                )
-                ai_response = response.choices[0].message.content
-            else:
-                # Old API method
-                response = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": query}
-                    ],
-                    temperature=0.7,
-                    max_tokens=600
-                )
-                ai_response = response.choices[0].message.content
-            
-            result = {
-                'response': ai_response,
-                'sources': ['OpenAI GPT-3.5', 'Network Data'],
-                'confidence': 0.85,
-                'using_api': True
-            }
-            st.session_state.ai_response_cache[cache_key] = result
-            return result
-            
-        except Exception as e:
-            error_msg = str(e)
-            print(f"OpenAI Error: {error_msg}")
-            fallback = get_fallback_response(query, context)
-            result = {
-                'response': fallback + f"\n\n⚠️ API Error: {error_msg[:100]}",
-                'sources': ['Fallback Mode'],
-                'confidence': 0.3,
-                'using_api': False
-            }
-            st.session_state.ai_response_cache[cache_key] = result
-            return result
-    
-    # Fallback
-    fallback = get_fallback_response(query, context)
-    result = {
-        'response': fallback,
-        'sources': ['Fallback Mode'],
-        'confidence': 0.2,
-        'using_api': False
-    }
-    st.session_state.ai_response_cache[cache_key] = result
-    return result
-
-def get_fallback_response(query, context):
-    """Fallback response when API is not available"""
-    
-    query_lower = query.lower()
-    responses = []
-    
-    total_nodes = context.get('total_nodes', 0)
-    total_edges = context.get('total_edges', 0)
-    entities = context.get('entities', [])
-    
-    if "person" in query_lower or "who" in query_lower:
-        if entities:
-            top = sorted(entities, key=lambda x: x.get('degree', 0), reverse=True)[:5]
-            names = [f"{e.get('name', e.get('id', 'Unknown'))} (degree: {e.get('degree', 0)})" for e in top]
-            responses.append(f"🔍 Key entities: {', '.join(names)}")
-    
-    if "connection" in query_lower or "link" in query_lower:
-        responses.append(f"🔗 {total_edges} relationships detected in the network.")
-    
-    if "priority" in query_lower or "important" in query_lower:
-        if entities:
-            critical = [e.get('id') for e in entities if e.get('degree', 0) >= 5]
-            if critical:
-                responses.append(f"🚨 Critical entities: {', '.join(critical[:5])}")
-    
-    if not responses:
-        responses.append(f"💡 Network contains {total_nodes} entities and {total_edges} relationships.")
-        responses.append("💡 Try asking about entities, connections, or patterns.")
-    
-    return '\n'.join(responses)
-
-# ============================================================================
-# CORE HELPER FUNCTIONS
+# HELPER FUNCTIONS
 # ============================================================================
 
 def get_node_list(G):
     try:
-        if NETWORKX_AVAILABLE:
-            return list(G.nodes())
-        else:
-            return list(G.nodes)
+        return list(G.nodes())
     except:
         return []
 
 def get_node_attributes(G, node):
     try:
-        if NETWORKX_AVAILABLE:
-            return dict(G.nodes[node])
-        else:
-            return G.nodes[node]
+        return dict(G.nodes[node])
     except:
         return {}
 
 def get_neighbors(G, node):
     try:
-        if NETWORKX_AVAILABLE:
-            return list(G.neighbors(node))
-        else:
-            return G.neighbors(node)
+        return list(G.neighbors(node))
     except:
         return []
 
 def get_degree(G, node):
     try:
-        if NETWORKX_AVAILABLE:
-            return G.degree(node)
-        else:
-            return G.degree(node)
+        return G.degree(node)
     except:
         return len(get_neighbors(G, node))
 
 def get_edge_data(G, u, v):
     try:
-        if NETWORKX_AVAILABLE:
-            return G.get_edge_data(u, v)
-        else:
-            return G.get_edge_data(u, v)
+        return G.get_edge_data(u, v)
     except:
         return {}
 
@@ -739,10 +288,7 @@ def analyze_network(G):
     total_nodes = len(node_list)
     total_edges = 0
     try:
-        if NETWORKX_AVAILABLE:
-            total_edges = G.number_of_edges()
-        else:
-            total_edges = len(G.edges)
+        total_edges = G.number_of_edges()
     except:
         total_edges = 0
     
@@ -795,16 +341,13 @@ def get_entity_details(G, entity_id):
     
     for neighbor in neighbors:
         edge_data = get_edge_data(G, entity_id, neighbor)
-        if not edge_data:
-            edge_data = get_edge_data(G, neighbor, entity_id)
-        
         details['connections'].append({
             'entity_id': neighbor,
             'relation': edge_data.get('type', 'CONNECTED'),
             'properties': edge_data
         })
         
-        if edge_data.get('type') in ['CALLED', 'TRANSACTION', 'VISITED']:
+        if edge_data.get('type') in ['CALLED', 'TRANSACTION']:
             details['evidence'].append({
                 'type': edge_data.get('type'),
                 'description': f"{edge_data.get('type')} evidence found",
@@ -896,11 +439,128 @@ def generate_simulation(G, target_entity):
     return simulation_results
 
 # ============================================================================
-# CSS
+# AI COPILOT WITH GROQ API
 # ============================================================================
 
-def render_css():
-    st.markdown("""
+def get_ai_response(query, context):
+    """Get AI response using Groq API (FREE)"""
+    
+    # Check cache
+    cache_key = f"{query}_{len(context)}"
+    if cache_key in st.session_state.ai_response_cache:
+        return st.session_state.ai_response_cache[cache_key]
+    
+    # Build context
+    context_str = f"""
+SUTRA-X CRIMINAL NETWORK ANALYSIS PLATFORM
+
+NETWORK OVERVIEW:
+- Total Entities: {context.get('total_nodes', 0)}
+- Total Relationships: {context.get('total_edges', 0)}
+- Entity Types: {context.get('entity_types', 'Not specified')}
+- High Priority Entities: {context.get('priority_entities', 'None')}
+"""
+    
+    system_prompt = f"""You are SUTRA-X AI, an advanced criminal network investigation assistant for Indian law enforcement.
+
+CONTEXT:
+{context_str}
+
+Provide evidence-backed, actionable insights for criminal network analysis.
+Be specific and reference actual entities in the network.
+Keep responses concise and practical for investigators.
+Use Indian context (locations, names, etc.) when relevant.
+"""
+    
+    # Try Groq API
+    if GROQ_AVAILABLE:
+        try:
+            response = client.chat.completions.create(
+                model="llama3-70b-8192",  # Free model
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": query}
+                ],
+                temperature=0.7,
+                max_tokens=600
+            )
+            
+            ai_response = response.choices[0].message.content
+            
+            result = {
+                'response': ai_response,
+                'sources': ['Groq LLaMA3-70B (FREE)', 'Network Data'],
+                'confidence': 0.88,
+                'using_api': True
+            }
+            st.session_state.ai_response_cache[cache_key] = result
+            return result
+            
+        except Exception as e:
+            error_msg = str(e)
+            fallback = get_fallback_response(query, context)
+            result = {
+                'response': fallback + f"\n\n⚠️ API Note: {error_msg[:100]}",
+                'sources': ['Fallback Mode'],
+                'confidence': 0.3,
+                'using_api': False
+            }
+            st.session_state.ai_response_cache[cache_key] = result
+            return result
+    
+    # Fallback
+    fallback = get_fallback_response(query, context)
+    result = {
+        'response': fallback,
+        'sources': ['Fallback Mode (No API)'],
+        'confidence': 0.2,
+        'using_api': False
+    }
+    st.session_state.ai_response_cache[cache_key] = result
+    return result
+
+def get_fallback_response(query, context):
+    """Fallback response when API is not available"""
+    
+    query_lower = query.lower()
+    responses = []
+    
+    total_nodes = context.get('total_nodes', 0)
+    total_edges = context.get('total_edges', 0)
+    entities = context.get('entities', [])
+    entity_types = context.get('entity_types', {})
+    priority_entities = context.get('priority_entities', [])
+    
+    if "person" in query_lower or "who" in query_lower or "entity" in query_lower:
+        if entities:
+            top = sorted(entities, key=lambda x: x.get('degree', 0), reverse=True)[:5]
+            names = [f"{e.get('name', e.get('id', 'Unknown'))} (degree: {e.get('degree', 0)})" for e in top]
+            responses.append(f"🔍 Key entities: {', '.join(names)}")
+        else:
+            responses.append("🔍 No entities found in the network.")
+    
+    if "connection" in query_lower or "link" in query_lower or "relationship" in query_lower:
+        responses.append(f"🔗 {total_edges} relationships detected in the network.")
+    
+    if "pattern" in query_lower or "trend" in query_lower or "activity" in query_lower:
+        responses.append("📊 Financial transaction patterns suggest potential money laundering.")
+    
+    if "priority" in query_lower or "important" in query_lower or "critical" in query_lower:
+        if priority_entities:
+            responses.append(f"🚨 Priority entities: {', '.join(priority_entities[:5])}")
+    
+    if not responses:
+        responses.append(f"💡 Network contains {total_nodes} entities and {total_edges} relationships.")
+        if entity_types:
+            responses.append(f"📊 Entity types: {', '.join([f'{k}: {v}' for k, v in entity_types.items()])}")
+    
+    return '\n'.join(responses)
+
+# ============================================================================
+# UI CSS
+# ============================================================================
+
+st.markdown("""
 <style>
     @keyframes fadeInUp {
         from { opacity: 0; transform: translateY(40px); }
@@ -959,6 +619,13 @@ def render_css():
         line-height: 1.6;
     }
     
+    .hero-badges {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 1.2rem;
+    }
+    
     .sih-badge-hero {
         display: inline-block;
         background: linear-gradient(135deg, #ff6b6b, #ee5a24);
@@ -978,6 +645,17 @@ def render_css():
         border-radius: 50px;
         font-size: 0.9rem;
         font-weight: 700;
+    }
+    
+    .feature-tag {
+        display: inline-block;
+        background: rgba(255,255,255,0.1);
+        backdrop-filter: blur(10px);
+        color: rgba(255,255,255,0.8);
+        padding: 6px 16px;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        border: 1px solid rgba(255,255,255,0.1);
     }
     
     .metric-card {
@@ -1004,7 +682,7 @@ def render_css():
         font-weight: 600;
         display: inline-block;
     }
-    .status-high { background: #ff6b6b; color: white; }
+    .status-high { background: #ff6b6b; color: white; animation: pulse 1.5s infinite; }
     .status-medium { background: #feca57; color: #1a1a2e; }
     .status-low { background: #48dbfb; color: #1a1a2e; }
     
@@ -1021,13 +699,86 @@ def render_css():
         transform: translateX(5px);
     }
     
+    .alert-card-critical {
+        background: linear-gradient(135deg, #ff4757, #ff6b6b);
+        color: white;
+        padding: 1.2rem;
+        border-radius: 12px;
+        margin: 0.5rem 0;
+        animation: pulse 2s infinite;
+        border: 2px solid rgba(255,255,255,0.2);
+    }
+    .alert-card-warning {
+        background: linear-gradient(135deg, #ffa502, #feca57);
+        color: white;
+        padding: 1.2rem;
+        border-radius: 12px;
+        margin: 0.5rem 0;
+        border: 2px solid rgba(255,255,255,0.2);
+    }
+    .alert-card-info {
+        background: linear-gradient(135deg, #2ed573, #48dbfb);
+        color: white;
+        padding: 1.2rem;
+        border-radius: 12px;
+        margin: 0.5rem 0;
+        border: 2px solid rgba(255,255,255,0.2);
+    }
+    
+    .section-divider {
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #667eea, #764ba2, #f093fb, transparent);
+        margin: 2rem 0;
+        border-radius: 10px;
+    }
+    
+    .glow-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        border: 1px solid rgba(102,126,234,0.1);
+        transition: all 0.3s ease;
+        animation: glow 4s infinite;
+        height: 100%;
+        text-align: center;
+    }
+    .glow-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 30px rgba(102,126,234,0.2);
+        border-color: #667eea;
+    }
+    .glow-card .icon { font-size: 3rem; margin-bottom: 0.5rem; }
+    .glow-card h3 { color: #1a1a2e; font-size: 1.2rem; margin: 0.5rem 0; }
+    .glow-card p { color: #4a4a4a; font-size: 0.9rem; }
+    
     .rag-response {
         background: #f8f9fa;
         padding: 1.5rem;
         border-radius: 12px;
         border-left: 4px solid #667eea;
         margin: 0.5rem 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
+    .rag-response p { color: #1a1a2e; line-height: 1.6; }
+    .rag-response strong { color: #1a1a2e; }
+    
+    .quick-stats {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    }
+    .quick-stats .stat-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #eee;
+        color: #1a1a2e;
+    }
+    .quick-stats .stat-item:last-child { border-bottom: none; }
+    .quick-stats .stat-label { color: #4a4a4a; }
+    .quick-stats .stat-value { font-weight: 700; color: #1a1a2e; }
     
     .footer {
         text-align: center;
@@ -1045,10 +796,17 @@ def render_css():
         border: none;
         border-radius: 50px;
         transition: all 0.3s ease;
+        padding: 0.6rem 1.5rem;
     }
     .stButton > button:hover {
         transform: translateY(-2px);
         box-shadow: 0 8px 25px rgba(102,126,234,0.4);
+    }
+    
+    @media (max-width: 768px) {
+        .hero-title { font-size: 2.2rem; }
+        .hero-section { padding: 2rem; }
+        .metric-card .value { font-size: 1.5rem; }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -1057,175 +815,160 @@ def render_css():
 # SIDEBAR
 # ============================================================================
 
-def render_sidebar():
-    with st.sidebar:
-        st.markdown("""
-        <div style="text-align: center; padding: 0.5rem 0;">
-            <div style="font-size: 3rem; animation: float 3s ease-in-out infinite;">🕵️</div>
-            <div style="font-size: 1.5rem; font-weight: 700; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-                SUTRA-X
-            </div>
-            <div style="font-size: 0.65rem; color: #888; margin-top: -3px;">
-                Smart Unified Threat & Relationship Analytics
-            </div>
-            <div style="margin-top: 6px;">
-                <span style="display: inline-block; background: linear-gradient(135deg, #ff6b6b, #ee5a24); color: white; padding: 3px 12px; border-radius: 50px; font-size: 0.65rem; font-weight: 600;">🏆 SIH 2026</span>
-            </div>
+with st.sidebar:
+    st.markdown("""
+    <div style="text-align: center; padding: 0.5rem 0;">
+        <div style="font-size: 3rem; animation: float 3s ease-in-out infinite;">🕵️</div>
+        <div style="font-size: 1.5rem; font-weight: 700; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            SUTRA-X
         </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("---")
-        
-        # API Status
-        st.markdown("### 🤖 AI Status")
-        if OPENAI_AVAILABLE:
-            st.success("✅ OpenAI Connected")
-            st.caption(f"Model: {OPENAI_MODEL}")
-        else:
-            st.warning("⚠️ OpenAI Not Available")
-            st.caption("Install: pip install openai")
-            st.caption("Check API Key")
-        
-        st.markdown("---")
-        
-        # Language
-        st.markdown("### 🌐 Language")
-        lang_options = {code: f"{data['flag']} {data['name']}" for code, data in LANGUAGES.items()}
-        selected_lang = st.selectbox(
-            "Select Language",
-            options=list(lang_options.keys()),
-            format_func=lambda x: lang_options[x],
-            index=list(lang_options.keys()).index(st.session_state.language)
-        )
-        if selected_lang != st.session_state.language:
-            st.session_state.language = selected_lang
-            st.rerun()
-        
-        st.markdown("---")
-        
-        # Auth
-        st.markdown("### 🔐 Security")
-        if not st.session_state.authenticated:
-            username = st.text_input("Username", key="login_username")
-            password = st.text_input("Password", type="password", key="login_password")
-            if st.button("Login", use_container_width=True):
-                user = authenticate_user(username, password)
-                if user:
-                    st.session_state.authenticated = True
-                    st.session_state.current_user = username
-                    st.session_state.user_role = user['role']
-                    add_audit_log("login", "Authentication", f"User: {username}")
-                    st.success(f"✅ Welcome {user['name']}!")
-                    st.rerun()
-                else:
-                    st.error("❌ Invalid credentials")
-        else:
-            st.success(f"✅ {st.session_state.current_user}")
-            st.caption(f"Role: {st.session_state.user_role.upper()}")
-            if st.button("Logout", use_container_width=True):
-                add_audit_log("logout", "Authentication", f"User: {st.session_state.current_user}")
-                st.session_state.authenticated = False
-                st.session_state.current_user = None
-                st.session_state.user_role = 'viewer'
+        <div style="font-size: 0.65rem; color: #888; margin-top: -3px;">
+            Smart Unified Threat & Relationship Analytics
+        </div>
+        <div style="margin-top: 6px;">
+            <span style="display: inline-block; background: linear-gradient(135deg, #ff6b6b, #ee5a24); color: white; padding: 3px 12px; border-radius: 50px; font-size: 0.65rem; font-weight: 600;">🏆 SIH 2026</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # API Status
+    st.markdown("### 🤖 AI Status")
+    if GROQ_AVAILABLE:
+        st.success("✅ Groq API Connected (FREE)")
+        st.caption("Model: LLaMA3-70B-8192")
+    else:
+        st.warning("⚠️ Groq Not Available")
+        st.caption("Install: pip install groq")
+    
+    st.markdown("---")
+    
+    # Authentication
+    st.markdown("### 🔐 Security")
+    
+    if not st.session_state.authenticated:
+        username = st.text_input("Username", key="login_username")
+        password = st.text_input("Password", type="password", key="login_password")
+        if st.button("Login", use_container_width=True):
+            user = authenticate_user(username, password)
+            if user:
+                st.session_state.authenticated = True
+                st.session_state.current_user = username
+                st.session_state.user_role = user['role']
+                add_audit_log("login", "Authentication", f"User: {username}")
+                st.success(f"✅ Welcome {user['name']}!")
                 st.rerun()
-        
-        st.markdown("---")
-        
-        # Offline Mode
-        st.markdown("### 📶 Mode")
-        offline_toggle = st.toggle("Offline Mode", value=st.session_state.offline_mode)
-        if offline_toggle != st.session_state.offline_mode:
-            st.session_state.offline_mode = offline_toggle
-            add_audit_log("mode_change", "Offline Mode", f"Set to {offline_toggle}")
-            st.rerun()
-        
-        st.markdown("---")
-        
-        # Navigation
-        st.markdown("### 📌 Navigation")
-        nav_items = [
-            ("📊 Dashboard", "Dashboard"),
-            ("🌐 Network Graph", "Network Graph"),
-            ("👤 Entity Profile", "Entity Profile"),
-            ("⏱️ Timeline", "Timeline"),
-            ("🔗 Cross-Case Discovery", "Cross-Case Discovery"),
-            ("🤖 AI Copilot", "AI Copilot"),
-            ("🔔 Alerts & Emergency", "Alerts & Emergency"),
-            ("🎯 What-If Simulation", "What-If Simulation"),
-            ("🗺️ Heatmap", "Heatmap"),
-            ("📄 Export", "Export"),
-            ("🔐 Security", "Security")
-        ]
-        for icon, page in nav_items:
-            if st.button(f"{icon}", key=f"nav_{page}", use_container_width=True):
-                st.session_state.current_page = page
-                st.rerun()
-        
-        st.markdown("---")
-        
-        # Data Controls
-        st.markdown("### 📊 Data")
-        if st.button("🔄 Generate Sample Data", use_container_width=True):
-            with st.spinner("Generating sample data..."):
-                G = generate_sample_network()
-                st.session_state.graph = G
-                st.session_state.data_loaded = True
-                st.session_state.entity_list = get_node_list(G)
-                st.session_state.alerts = generate_alerts(G)
-                add_audit_log("data_generate", "Network Data", "Sample data generated")
-                st.success("✅ Data generated!")
-                st.rerun()
-        
-        st.markdown("---")
-        
-        # Status
-        if st.session_state.data_loaded:
-            st.success(f"✅ Data Loaded")
-            st.caption(f"Entities: {len(st.session_state.entity_list)}")
-            if st.session_state.offline_mode:
-                st.markdown('<span style="display: inline-block; padding: 3px 12px; border-radius: 50px; font-size: 0.65rem; font-weight: 600; background: #ffa50220; color: #ffa502; border: 1px solid #ffa50240;">📴 OFFLINE</span>', unsafe_allow_html=True)
             else:
-                st.markdown('<span style="display: inline-block; padding: 3px 12px; border-radius: 50px; font-size: 0.65rem; font-weight: 600; background: #2ed57320; color: #2ed573; border: 1px solid #2ed57340;">📶 ONLINE</span>', unsafe_allow_html=True)
+                st.error("❌ Invalid credentials")
+    else:
+        st.success(f"✅ {st.session_state.current_user}")
+        st.caption(f"Role: {st.session_state.user_role.upper()}")
+        if st.button("Logout", use_container_width=True):
+            add_audit_log("logout", "Authentication", f"User: {st.session_state.current_user}")
+            st.session_state.authenticated = False
+            st.session_state.current_user = None
+            st.session_state.user_role = 'viewer'
+            st.rerun()
+    
+    st.markdown("---")
+    
+    # Offline Mode
+    st.markdown("### 📶 Mode")
+    offline_toggle = st.toggle("Offline Mode", value=st.session_state.offline_mode)
+    if offline_toggle != st.session_state.offline_mode:
+        st.session_state.offline_mode = offline_toggle
+        add_audit_log("mode_change", "Offline Mode", f"Set to {offline_toggle}")
+        st.rerun()
+    
+    st.markdown("---")
+    
+    # Navigation
+    st.markdown("### 📌 Navigation")
+    nav_items = [
+        ("📊 Dashboard", "Dashboard"),
+        ("🌐 Network Graph", "Network Graph"),
+        ("👤 Entity Profile", "Entity Profile"),
+        ("⏱️ Timeline", "Timeline"),
+        ("🔗 Cross-Case Discovery", "Cross-Case Discovery"),
+        ("🤖 AI Copilot", "AI Copilot"),
+        ("🔔 Alerts & Emergency", "Alerts & Emergency"),
+        ("🎯 What-If Simulation", "What-If Simulation"),
+        ("🗺️ Heatmap", "Heatmap"),
+        ("📄 Export", "Export"),
+        ("🔐 Security", "Security")
+    ]
+    for icon, page in nav_items:
+        if st.button(f"{icon} {page}", key=f"nav_{page}", use_container_width=True):
+            st.session_state.current_page = page
+            st.rerun()
+    
+    st.markdown("---")
+    
+    # Data Controls
+    st.markdown("### 📊 Data")
+    if st.button("🔄 Generate Sample Data", use_container_width=True):
+        with st.spinner("Generating sample data..."):
+            G = generate_sample_network()
+            st.session_state.graph = G
+            st.session_state.data_loaded = True
+            st.session_state.entity_list = get_node_list(G)
+            st.session_state.alerts = generate_alerts(G)
+            add_audit_log("data_generate", "Network Data", "Sample data generated")
+            st.success("✅ Data generated!")
+            st.rerun()
+    
+    st.markdown("---")
+    
+    # Status
+    if st.session_state.data_loaded:
+        st.success(f"✅ Data Loaded")
+        st.caption(f"Entities: {len(st.session_state.entity_list)}")
+        if st.session_state.offline_mode:
+            st.markdown('<span style="display: inline-block; padding: 3px 12px; border-radius: 50px; font-size: 0.65rem; font-weight: 600; background: #ffa50220; color: #ffa502; border: 1px solid #ffa50240;">📴 OFFLINE</span>', unsafe_allow_html=True)
         else:
-            st.info("⏳ No data loaded")
-        
-        st.markdown("---")
-        st.caption("v3.0.0 | Made with ❤️")
+            st.markdown('<span style="display: inline-block; padding: 3px 12px; border-radius: 50px; font-size: 0.65rem; font-weight: 600; background: #2ed57320; color: #2ed573; border: 1px solid #2ed57340;">📶 ONLINE</span>', unsafe_allow_html=True)
+    else:
+        st.info("⏳ No data loaded")
+    
+    st.markdown("---")
+    st.caption("v3.0.0 | Made with ❤️")
 
 # ============================================================================
 # HERO SECTION
 # ============================================================================
 
-def render_hero():
-    st.markdown("""
-    <div class="hero-section">
-        <div class="hero-content">
-            <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 1rem;">
-                <span class="sih-badge-hero">🏆 SIH 2026</span>
-                <span class="ps-badge-hero">AI-Powered Criminal Network Analysis</span>
-            </div>
-            <div class="hero-title">🕵️ SUTRA-X</div>
-            <div class="hero-subtitle">Smart Unified Threat & Relationship Analytics</div>
-            <div class="hero-description">
-                AI-powered platform that connects the dots across criminal cases, discovers hidden relationships,
-                and provides evidence-backed investigative leads in seconds.
-            </div>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 1rem;">
-                <span style="display: inline-block; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); color: rgba(255,255,255,0.8); padding: 6px 16px; border-radius: 50px; font-size: 0.75rem; border: 1px solid rgba(255,255,255,0.1);">🤖 AI Copilot</span>
-                <span style="display: inline-block; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); color: rgba(255,255,255,0.8); padding: 6px 16px; border-radius: 50px; font-size: 0.75rem; border: 1px solid rgba(255,255,255,0.1);">🔗 Cross-Case Discovery</span>
-                <span style="display: inline-block; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); color: rgba(255,255,255,0.8); padding: 6px 16px; border-radius: 50px; font-size: 0.75rem; border: 1px solid rgba(255,255,255,0.1);">🗺️ Heatmap</span>
-                <span style="display: inline-block; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); color: rgba(255,255,255,0.8); padding: 6px 16px; border-radius: 50px; font-size: 0.75rem; border: 1px solid rgba(255,255,255,0.1);">🔐 RBAC</span>
-            </div>
+st.markdown("""
+<div class="hero-section">
+    <div class="hero-content">
+        <div class="hero-badges">
+            <span class="sih-badge-hero">🏆 SIH 2026</span>
+            <span class="ps-badge-hero">AI-Powered Criminal Network Analysis</span>
+        </div>
+        <div class="hero-title">🕵️ SUTRA-X</div>
+        <div class="hero-subtitle">Smart Unified Threat & Relationship Analytics</div>
+        <div class="hero-description">
+            AI-powered platform that connects the dots across criminal cases, discovers hidden relationships,
+            and provides evidence-backed investigative leads in seconds.
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 1rem;">
+            <span class="feature-tag">🤖 AI Copilot</span>
+            <span class="feature-tag">🔗 Cross-Case Discovery</span>
+            <span class="feature-tag">🗺️ Heatmap</span>
+            <span class="feature-tag">🔐 RBAC</span>
+            <span class="feature-tag">📊 Network Analysis</span>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+</div>
+""", unsafe_allow_html=True)
 
 # ============================================================================
-# DASHBOARD
+# DASHBOARD PAGE
 # ============================================================================
 
 def render_dashboard():
     G = st.session_state.graph
+    node_list = get_node_list(G)
     metrics = analyze_network(G)
     
     st.markdown("""
@@ -1271,7 +1014,6 @@ def render_dashboard():
     
     with col4:
         cross_case = 0
-        node_list = get_node_list(G)
         for node in node_list:
             attrs = get_node_attributes(G, node)
             if attrs.get('type') == 'PERSON':
@@ -1299,7 +1041,7 @@ def render_dashboard():
     
     st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
     
-    st.markdown("## 🚨 Priority Investigation Leads")
+    st.markdown(f"## 🚨 Priority Investigation Leads")
     
     if metrics and metrics['priority_entities']:
         for entity in metrics['priority_entities'][:5]:
@@ -1327,153 +1069,10 @@ def render_dashboard():
             
             st.markdown("---")
     else:
-        st.info("No priority leads found.")
+        st.info("No priority leads found")
 
 # ============================================================================
-# AI COPILOT PAGE
-# ============================================================================
-
-def render_ai_copilot():
-    G = st.session_state.graph
-    node_list = get_node_list(G)
-    
-    st.markdown("""
-    <div style="animation: fadeInUp 0.6s ease-out;">
-        <h1 style="font-size: 2.5rem; font-weight: 700; color: #1a1a2e;">🤖 AI Copilot</h1>
-        <p style="color: #666; margin-top: -0.5rem;">Real OpenAI-powered investigation assistant</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    if not st.session_state.data_loaded or G is None:
-        st.info("👈 Click 'Generate Sample Data' in the sidebar to get started")
-        return
-    
-    if not has_permission("use_ai"):
-        st.warning("🔒 You need 'Analyst' or higher role to use AI Copilot.")
-        return
-    
-    # API Status
-    st.markdown("### 🤖 AI Status")
-    if OPENAI_AVAILABLE:
-        st.success("✅ OpenAI API Connected - Real AI Responses")
-        st.caption(f"Model: {OPENAI_MODEL} | Status: Active")
-    else:
-        st.warning("⚠️ OpenAI API Not Available - Using Fallback Mode")
-        st.caption("Install: pip install openai")
-        st.caption("Check your API key")
-    
-    st.markdown("---")
-    
-    st.info("🧠 Ask questions about your investigation or get AI-generated insights")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("### 💬 Quick Questions")
-        questions = [
-            "Who are the most central people in this network?",
-            "Show me connections between cases",
-            "What patterns indicate criminal activity?",
-            "Which entities should I investigate first?"
-        ]
-        for q in questions:
-            if st.button(q, key=f"q_{hash(q)}", use_container_width=True):
-                st.session_state.ai_query = q
-                st.rerun()
-    
-    with col2:
-        st.markdown("### 🔍 Custom Query")
-        user_query = st.text_area(
-            "Ask your question",
-            placeholder="Example: What are the connections between Entity A and Entity B?",
-            height=150
-        )
-        if st.button("🔍 Analyze", use_container_width=True):
-            if user_query:
-                st.session_state.ai_query = user_query
-                add_audit_log("ai_query", "AI Copilot", f"Query: {user_query[:100]}")
-                st.rerun()
-            else:
-                st.warning("Please enter a question.")
-    
-    if hasattr(st.session_state, 'ai_query') and st.session_state.ai_query:
-        query = st.session_state.ai_query
-        
-        st.markdown("---")
-        st.markdown("### 🤖 AI Response")
-        
-        with st.spinner("🧠 Analyzing with AI..."):
-            # Build context
-            context = {
-                'entities': [],
-                'total_nodes': len(node_list),
-                'total_edges': 0,
-                'entity_types': {},
-                'priority_entities': []
-            }
-            
-            try:
-                if NETWORKX_AVAILABLE:
-                    context['total_edges'] = G.number_of_edges()
-                else:
-                    context['total_edges'] = len(G.edges)
-            except:
-                context['total_edges'] = 0
-            
-            # Build entity data
-            for node in node_list[:30]:
-                degree = get_degree(G, node)
-                attrs = get_node_attributes(G, node)
-                node_type = attrs.get('type', 'UNKNOWN')
-                context['entity_types'][node_type] = context['entity_types'].get(node_type, 0) + 1
-                
-                if attrs.get('type') == 'PERSON':
-                    context['entities'].append({
-                        'id': node,
-                        'name': attrs.get('name', node),
-                        'degree': degree
-                    })
-                    if degree >= 3:
-                        context['priority_entities'].append(f"{node} (degree: {degree})")
-            
-            # Get AI response
-            result = get_ai_response(query, context)
-            
-            # Display response
-            st.markdown(f"""
-            <div class="rag-response">
-                <strong>Response:</strong>
-                <p style="margin-top: 0.5rem; white-space: pre-wrap;">{result['response']}</p>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 0.5rem;">
-                    <span style="font-size: 0.7rem; color: #888; margin-right: 0.5rem;">Sources:</span>
-                    {''.join([f'<span style="background: #667eea20; color: #667eea; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">{s}</span>' for s in result['sources']])}
-                    <span style="background: #667eea20; color: #667eea; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">
-                        Confidence: {result['confidence']:.0%}
-                    </span>
-                    {f'<span style="background: #2ed57320; color: #2ed573; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">✅ Real AI</span>' if result.get('using_api', False) else '<span style="background: #ffa50220; color: #ffa502; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">⚠️ Fallback</span>'}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Relevant entities
-            st.markdown("### 📋 Relevant Entities")
-            entities_with_degree = []
-            for node in node_list:
-                attrs = get_node_attributes(G, node)
-                if attrs.get('type') == 'PERSON':
-                    degree = get_degree(G, node)
-                    entities_with_degree.append((node, degree, attrs.get('name', node)))
-            
-            entities_with_degree.sort(key=lambda x: x[1], reverse=True)
-            for node, degree, name in entities_with_degree[:5]:
-                st.markdown(f"- **{node}** ({name}) - Degree: {degree}")
-            
-            st.warning("⚠️ This is an AI-generated analysis. All findings should be verified by human investigators.")
-            
-            st.session_state.ai_query = ""
-
-# ============================================================================
-# NETWORK GRAPH (3D)
+# NETWORK GRAPH PAGE (3D)
 # ============================================================================
 
 def render_network_graph():
@@ -1495,128 +1094,100 @@ def render_network_graph():
         st.warning("Not enough data for graph visualization.")
         return
     
-    if PLOTLY_AVAILABLE and NETWORKX_AVAILABLE:
-        try:
-            st.info("💡 Hover over nodes for details. Drag to rotate the 3D view.")
-            
-            pos = nx.spring_layout(G, dim=3, k=0.5, iterations=50)
-            
-            node_x, node_y, node_z = [], [], []
-            node_text, node_color, node_size = [], [], []
-            
-            color_map = {
-                'PERSON': '#FF6B6B',
-                'PHONE': '#4ECDC4', 
-                'ACCOUNT': '#45B7D1',
-                'VEHICLE': '#96CEB4',
-                'LOCATION': '#FFEAA7',
-                'CASE': '#FF9FF3',
-                'UNKNOWN': '#888888'
-            }
-            
-            for node in node_list:
-                try:
-                    x, y, z = pos[node]
-                    node_x.append(x)
-                    node_y.append(y)
-                    node_z.append(z)
-                    attrs = get_node_attributes(G, node)
-                    node_type = attrs.get('type', 'UNKNOWN')
-                    degree = get_degree(G, node)
-                    name = attrs.get('name', attrs.get('number', ''))
-                    node_text.append(f"<b>{node}</b><br>Type: {node_type}<br>Name: {name}<br>Degree: {degree}")
-                    node_color.append(color_map.get(node_type, '#888888'))
-                    node_size.append(10 + degree * 3)
-                except:
-                    continue
-            
-            edge_x, edge_y, edge_z = [], [], []
-            for edge in G.edges():
-                try:
-                    x0, y0, z0 = pos[edge[0]]
-                    x1, y1, z1 = pos[edge[1]]
-                    edge_x.extend([x0, x1, None])
-                    edge_y.extend([y0, y1, None])
-                    edge_z.extend([z0, z1, None])
-                except:
-                    continue
-            
-            edge_trace = go.Scatter3d(
-                x=edge_x, y=edge_y, z=edge_z,
-                line=dict(width=1, color='rgba(136, 136, 136, 0.3)'),
-                hoverinfo='none',
-                mode='lines'
+    try:
+        import networkx as nx
+        import plotly.graph_objects as go
+        
+        st.info("💡 Hover over nodes for details. Drag to rotate the 3D view.")
+        
+        pos = nx.spring_layout(G, dim=3, k=0.5, iterations=50)
+        
+        node_x, node_y, node_z = [], [], []
+        node_text, node_color, node_size = [], [], []
+        
+        color_map = {
+            'PERSON': '#FF6B6B',
+            'PHONE': '#4ECDC4', 
+            'ACCOUNT': '#45B7D1',
+            'CASE': '#FF9FF3',
+            'UNKNOWN': '#888888'
+        }
+        
+        for node in node_list:
+            try:
+                x, y, z = pos[node]
+                node_x.append(x)
+                node_y.append(y)
+                node_z.append(z)
+                attrs = get_node_attributes(G, node)
+                node_type = attrs.get('type', 'UNKNOWN')
+                degree = get_degree(G, node)
+                name = attrs.get('name', attrs.get('number', ''))
+                node_text.append(f"<b>{node}</b><br>Type: {node_type}<br>Name: {name}<br>Degree: {degree}")
+                node_color.append(color_map.get(node_type, '#888888'))
+                node_size.append(10 + degree * 3)
+            except:
+                continue
+        
+        edge_x, edge_y, edge_z = [], [], []
+        for edge in G.edges():
+            try:
+                x0, y0, z0 = pos[edge[0]]
+                x1, y1, z1 = pos[edge[1]]
+                edge_x.extend([x0, x1, None])
+                edge_y.extend([y0, y1, None])
+                edge_z.extend([z0, z1, None])
+            except:
+                continue
+        
+        edge_trace = go.Scatter3d(
+            x=edge_x, y=edge_y, z=edge_z,
+            line=dict(width=1, color='rgba(136, 136, 136, 0.3)'),
+            hoverinfo='none',
+            mode='lines'
+        )
+        
+        node_trace = go.Scatter3d(
+            x=node_x, y=node_y, z=node_z,
+            mode='markers',
+            hoverinfo='text',
+            text=node_text,
+            marker=dict(
+                size=node_size,
+                color=node_color,
+                opacity=0.9,
+                line=dict(width=1, color='#fff')
             )
-            
-            node_trace = go.Scatter3d(
-                x=node_x, y=node_y, z=node_z,
-                mode='markers',
-                hoverinfo='text',
-                text=node_text,
-                marker=dict(
-                    size=node_size,
-                    color=node_color,
-                    opacity=0.9,
-                    line=dict(width=1, color='#fff')
-                )
+        )
+        
+        fig = go.Figure(
+            data=[edge_trace, node_trace],
+            layout=go.Layout(
+                title='3D Criminal Network Graph',
+                scene=dict(
+                    xaxis=dict(showgrid=False, showticklabels=False, title=''),
+                    yaxis=dict(showgrid=False, showticklabels=False, title=''),
+                    zaxis=dict(showgrid=False, showticklabels=False, title=''),
+                    bgcolor='#f8f9fa',
+                    camera=dict(eye=dict(x=1.5, y=1.5, z=1.5))
+                ),
+                height=700,
+                margin=dict(l=0, r=0, t=40, b=0),
+                paper_bgcolor='#f8f9fa'
             )
-            
-            fig = go.Figure(
-                data=[edge_trace, node_trace],
-                layout=go.Layout(
-                    title='3D Criminal Network Graph',
-                    scene=dict(
-                        xaxis=dict(showgrid=False, showticklabels=False, title=''),
-                        yaxis=dict(showgrid=False, showticklabels=False, title=''),
-                        zaxis=dict(showgrid=False, showticklabels=False, title=''),
-                        bgcolor='#f8f9fa',
-                        camera=dict(eye=dict(x=1.5, y=1.5, z=1.5))
-                    ),
-                    height=700,
-                    margin=dict(l=0, r=0, t=40, b=0)
-                )
-            )
-            
-            st.plotly_chart(fig, use_container_width=True)
-            
-            st.markdown("""
-            <div style="background: white; padding: 1rem; border-radius: 12px; margin-top: 1rem; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-                <h4 style="margin: 0 0 0.5rem 0; color: #1a1a2e;">📊 Legend</h4>
-                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-                    <div><span style="display: inline-block; width: 20px; height: 20px; background: #FF6B6B; border-radius: 50%;"></span> Person</div>
-                    <div><span style="display: inline-block; width: 20px; height: 20px; background: #4ECDC4; border-radius: 50%;"></span> Phone</div>
-                    <div><span style="display: inline-block; width: 20px; height: 20px; background: #45B7D1; border-radius: 50%;"></span> Account</div>
-                    <div><span style="display: inline-block; width: 20px; height: 20px; background: #96CEB4; border-radius: 50%;"></span> Vehicle</div>
-                    <div><span style="display: inline-block; width: 20px; height: 20px; background: #FFEAA7; border-radius: 50%;"></span> Location</div>
-                    <div><span style="display: inline-block; width: 20px; height: 20px; background: #FF9FF3; border-radius: 50%;"></span> Case</div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        except Exception as e:
-            st.error(f"Error: {str(e)}")
-            display_fallback_network(G, node_list)
-    else:
-        st.warning("Install plotly and networkx for interactive 3D visualization.")
-        display_fallback_network(G, node_list)
-    
-    st.markdown("---")
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        if node_list:
-            selected = st.selectbox("🔍 Select Entity to Investigate", node_list)
-        else:
-            selected = None
-    with col2:
-        if selected and st.button("👤 View Profile", use_container_width=True):
-            st.session_state.selected_entity = selected
-            st.session_state.current_page = "Entity Profile"
-            st.rerun()
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+    except ImportError:
+        st.warning("Install plotly and networkx for interactive 3D visualization: pip install plotly networkx")
+        _show_network_data(G, node_list)
+    except Exception as e:
+        st.error(f"Error: {str(e)}")
+        _show_network_data(G, node_list)
 
-def display_fallback_network(G, node_list):
+def _show_network_data(G, node_list):
     st.subheader("📋 Network Data")
-    
-    st.write("**Entities:**")
     node_data = []
     for node in node_list[:30]:
         attrs = get_node_attributes(G, node)
@@ -1629,7 +1200,7 @@ def display_fallback_network(G, node_list):
     st.dataframe(pd.DataFrame(node_data), use_container_width=True)
 
 # ============================================================================
-# ENTITY PROFILE
+# ENTITY PROFILE PAGE
 # ============================================================================
 
 def render_entity_profile():
@@ -1780,7 +1351,7 @@ def render_entity_profile():
         st.markdown("</div>", unsafe_allow_html=True)
 
 # ============================================================================
-# TIMELINE
+# TIMELINE PAGE
 # ============================================================================
 
 def render_timeline():
@@ -1807,7 +1378,9 @@ def render_timeline():
         'Relationships': relationships
     })
     
-    if PLOTLY_AVAILABLE:
+    try:
+        import plotly.graph_objects as go
+        
         fig = go.Figure()
         fig.add_trace(go.Scatter(
             x=timeline_df['Date'], 
@@ -1836,7 +1409,7 @@ def render_timeline():
         )
         
         st.plotly_chart(fig, use_container_width=True)
-    else:
+    except:
         st.dataframe(timeline_df, use_container_width=True)
     
     st.markdown("---")
@@ -1857,7 +1430,7 @@ def render_timeline():
             st.markdown(event['event'])
 
 # ============================================================================
-# CROSS-CASE
+# CROSS-CASE DISCOVERY PAGE
 # ============================================================================
 
 def render_cross_case():
@@ -1922,7 +1495,140 @@ def render_cross_case():
         st.warning("Need at least 2 cases and 1 person.")
 
 # ============================================================================
-# ALERTS
+# AI COPILOT PAGE
+# ============================================================================
+
+def render_ai_copilot():
+    G = st.session_state.graph
+    node_list = get_node_list(G)
+    
+    st.markdown("""
+    <div style="animation: fadeInUp 0.6s ease-out;">
+        <h1 style="font-size: 2.5rem; font-weight: 700; color: #1a1a2e;">🤖 AI Copilot</h1>
+        <p style="color: #666; margin-top: -0.5rem;">Real AI-powered investigation assistant</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if not st.session_state.data_loaded or G is None:
+        st.info("👈 Click 'Generate Sample Data' in the sidebar to get started")
+        return
+    
+    if not has_permission("use_ai"):
+        st.warning("🔒 You need 'Analyst' or higher role to use AI Copilot.")
+        return
+    
+    # API Status
+    if GROQ_AVAILABLE:
+        st.success("✅ Groq API Connected (FREE) - Real AI Responses")
+        st.caption("Model: LLaMA3-70B-8192")
+    else:
+        st.warning("⚠️ Groq API Not Available - Using Fallback Mode")
+        st.caption("Install: pip install groq")
+    
+    st.info("🧠 Ask questions about your investigation or get AI-generated insights")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### 💬 Quick Questions")
+        questions = [
+            "Who are the most central people in this network?",
+            "Show me connections between cases",
+            "What patterns indicate criminal activity?",
+            "Which entities should I investigate first?",
+            "What are the hidden connections in this network?"
+        ]
+        for q in questions:
+            if st.button(q, key=f"q_{hash(q)}", use_container_width=True):
+                st.session_state.ai_query = q
+                st.rerun()
+    
+    with col2:
+        st.markdown("### 🔍 Custom Query")
+        user_query = st.text_area(
+            "Ask your question",
+            placeholder="Example: What are the connections between Entity A and Entity B?",
+            height=150
+        )
+        if st.button("🔍 Analyze", use_container_width=True):
+            if user_query:
+                st.session_state.ai_query = user_query
+                add_audit_log("ai_query", "AI Copilot", f"Query: {user_query[:100]}")
+                st.rerun()
+            else:
+                st.warning("Please enter a question.")
+    
+    if hasattr(st.session_state, 'ai_query') and st.session_state.ai_query:
+        query = st.session_state.ai_query
+        
+        st.markdown("---")
+        st.markdown("### 🤖 AI Response")
+        
+        with st.spinner("🧠 Analyzing with AI..."):
+            # Build context
+            context = {
+                'entities': [],
+                'total_nodes': len(node_list),
+                'total_edges': 0,
+                'entity_types': {},
+                'priority_entities': []
+            }
+            
+            try:
+                context['total_edges'] = G.number_of_edges()
+            except:
+                context['total_edges'] = 0
+            
+            for node in node_list[:30]:
+                degree = get_degree(G, node)
+                attrs = get_node_attributes(G, node)
+                node_type = attrs.get('type', 'UNKNOWN')
+                context['entity_types'][node_type] = context['entity_types'].get(node_type, 0) + 1
+                
+                if attrs.get('type') == 'PERSON':
+                    context['entities'].append({
+                        'id': node,
+                        'name': attrs.get('name', node),
+                        'degree': degree
+                    })
+                    if degree >= 3:
+                        context['priority_entities'].append(f"{node} (degree: {degree})")
+            
+            result = get_ai_response(query, context)
+            
+            st.markdown(f"""
+            <div class="rag-response">
+                <strong>Response:</strong>
+                <p style="margin-top: 0.5rem; white-space: pre-wrap;">{result['response']}</p>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 0.5rem;">
+                    <span style="font-size: 0.7rem; color: #888; margin-right: 0.5rem;">Sources:</span>
+                    {''.join([f'<span style="background: #667eea20; color: #667eea; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">{s}</span>' for s in result['sources']])}
+                    <span style="background: #667eea20; color: #667eea; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">
+                        Confidence: {result['confidence']:.0%}
+                    </span>
+                    {f'<span style="background: #2ed57320; color: #2ed573; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">✅ Real AI</span>' if result.get('using_api', False) else '<span style="background: #ffa50220; color: #ffa502; padding: 2px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 600;">⚠️ Fallback</span>'}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown("### 📋 Relevant Entities")
+            entities_with_degree = []
+            for node in node_list:
+                attrs = get_node_attributes(G, node)
+                if attrs.get('type') == 'PERSON':
+                    degree = get_degree(G, node)
+                    entities_with_degree.append((node, degree, attrs.get('name', node)))
+            
+            entities_with_degree.sort(key=lambda x: x[1], reverse=True)
+            for node, degree, name in entities_with_degree[:5]:
+                st.markdown(f"- **{node}** ({name}) - Degree: {degree}")
+            
+            st.warning("⚠️ This is an AI-generated analysis. All findings should be verified by human investigators.")
+            
+            st.session_state.ai_query = ""
+
+# ============================================================================
+# ALERTS PAGE
 # ============================================================================
 
 def render_alerts():
@@ -1959,10 +1665,15 @@ def render_alerts():
     
     if st.session_state.emergency_triggered:
         st.markdown("""
-        <div style="text-align: center; padding: 2rem; background: linear-gradient(135deg, #ff4757, #ff6b6b); border-radius: 12px; color: white; animation: pulse 2s infinite;">
+        <div class="alert-card-critical" style="text-align: center; padding: 2rem;">
             <div style="font-size: 3rem;">🚨</div>
             <h2 style="color: white;">EMERGENCY ALERT ACTIVATED</h2>
             <p style="color: rgba(255,255,255,0.9);">All investigators have been notified.</p>
+            <div style="margin-top: 1rem; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                <span style="background: rgba(255,255,255,0.2); padding: 8px 20px; border-radius: 50px;">🚔 Police Dispatched</span>
+                <span style="background: rgba(255,255,255,0.2); padding: 8px 20px; border-radius: 50px;">📞 Emergency Services Notified</span>
+                <span style="background: rgba(255,255,255,0.2); padding: 8px 20px; border-radius: 50px;">📨 Team Alerted</span>
+            </div>
         </div>
         """, unsafe_allow_html=True)
         st.session_state.emergency_triggered = False
@@ -1991,11 +1702,11 @@ def render_alerts():
         
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("🔴 Critical Alerts", critical_count)
+            st.metric("🔴 Critical Alerts", critical_count, delta="Immediate Action")
         with col2:
-            st.metric("🟡 Warnings", warning_count)
+            st.metric("🟡 Warnings", warning_count, delta="Review Required")
         with col3:
-            st.metric("🔵 Information", info_count)
+            st.metric("🔵 Information", info_count, delta="Info")
         
         st.markdown("---")
         
@@ -2011,7 +1722,7 @@ def render_alerts():
                 icon = "ℹ️"
             
             st.markdown(f"""
-            <div style="background: {'linear-gradient(135deg, #ff4757, #ff6b6b)' if alert['type'] == 'CRITICAL' else 'linear-gradient(135deg, #ffa502, #feca57)' if alert['type'] == 'WARNING' else 'linear-gradient(135deg, #2ed573, #48dbfb)'}; color: white; padding: 1.2rem; border-radius: 12px; margin: 0.5rem 0; border: 2px solid rgba(255,255,255,0.2);">
+            <div class="{card_class}">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                     <div>
                         <span style="font-size: 1.2rem; font-weight: 700;">{icon} {alert['title']}</span>
@@ -2024,6 +1735,7 @@ def render_alerts():
                 </div>
                 <div style="margin-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 0.5rem;">
                     <span style="font-weight: 600;">Action:</span> {alert['action']}
+                    {f"<br>Entity: {alert['entity']}" if alert.get('entity') else ""}
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -2031,7 +1743,7 @@ def render_alerts():
         st.info("No active alerts.")
 
 # ============================================================================
-# SIMULATION
+# SIMULATION PAGE
 # ============================================================================
 
 def render_simulation():
@@ -2121,7 +1833,7 @@ def render_simulation():
             st.info("No affected entities detected.")
 
 # ============================================================================
-# HEATMAP
+# HEATMAP PAGE
 # ============================================================================
 
 def render_heatmap():
@@ -2176,65 +1888,50 @@ def render_heatmap():
     st.markdown("---")
     st.markdown("### 🗺️ Interactive Location Map")
     
-    if PLOTLY_AVAILABLE:
-        try:
-            fig = go.Figure()
-            
-            fig.add_trace(go.Scattergeo(
-                lon=df['Longitude'],
-                lat=df['Latitude'],
-                text=[f"{row['Name']}<br>Type: {row['Type']}<br>Intensity: {row['Intensity']}<br>Degree: {row['Degree']}" for _, row in df.iterrows()],
-                mode='markers',
-                marker=dict(
-                    size=[d['Intensity']/10 + 5 for d in heatmap_data],
-                    color=df['Intensity'],
-                    colorscale='Reds',
-                    showscale=True,
-                    colorbar=dict(title="Intensity"),
-                    line=dict(width=1, color='white'),
-                    opacity=0.9
-                ),
-                hoverinfo='text'
-            ))
-            
-            fig.update_layout(
-                title='Entity Locations Map - India',
-                geo=dict(
-                    scope='asia',
-                    projection_type='mercator',
-                    center=dict(lat=20.5937, lon=78.9629),
-                    lonaxis_range=[68, 98],
-                    lataxis_range=[8, 38],
-                    showland=True,
-                    landcolor='#f0f0f0',
-                    coastlinecolor='#ccc',
-                    countrycolor='#ddd'
-                ),
-                height=600,
-                margin=dict(l=0, r=0, t=40, b=0)
-            )
-            
-            st.plotly_chart(fig, use_container_width=True)
-            
-            st.markdown("""
-            <div style="background: white; padding: 1rem; border-radius: 12px; margin-top: 1rem; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-                <h4 style="margin: 0 0 0.5rem 0; color: #1a1a2e;">📊 Legend</h4>
-                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-                    <div><span style="display: inline-block; width: 20px; height: 20px; background: #ff4757; border-radius: 50%;"></span> High Intensity (70-100)</div>
-                    <div><span style="display: inline-block; width: 20px; height: 20px; background: #ffa502; border-radius: 50%;"></span> Medium Intensity (40-70)</div>
-                    <div><span style="display: inline-block; width: 20px; height: 20px; background: #2ed573; border-radius: 50%;"></span> Low Intensity (0-40)</div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        except Exception as e:
-            st.error(f"Error: {str(e)}")
-            st.info("Showing data table instead.")
-    else:
+    try:
+        import plotly.graph_objects as go
+        
+        fig = go.Figure()
+        fig.add_trace(go.Scattergeo(
+            lon=df['Longitude'],
+            lat=df['Latitude'],
+            text=[f"{row['Name']}<br>Type: {row['Type']}<br>Intensity: {row['Intensity']}<br>Degree: {row['Degree']}" for _, row in df.iterrows()],
+            mode='markers',
+            marker=dict(
+                size=[d['Intensity']/10 + 5 for d in heatmap_data],
+                color=df['Intensity'],
+                colorscale='Reds',
+                showscale=True,
+                colorbar=dict(title="Intensity"),
+                line=dict(width=1, color='white'),
+                opacity=0.9
+            ),
+            hoverinfo='text'
+        ))
+        
+        fig.update_layout(
+            title='Entity Locations Map - India',
+            geo=dict(
+                scope='asia',
+                projection_type='mercator',
+                center=dict(lat=20.5937, lon=78.9629),
+                lonaxis_range=[68, 98],
+                lataxis_range=[8, 38],
+                showland=True,
+                landcolor='#f0f0f0',
+                coastlinecolor='#ccc',
+                countrycolor='#ddd'
+            ),
+            height=600,
+            margin=dict(l=0, r=0, t=40, b=0)
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+    except:
         st.info("Install plotly for interactive map visualization.")
 
 # ============================================================================
-# EXPORT
+# EXPORT PAGE
 # ============================================================================
 
 def render_export():
@@ -2327,7 +2024,7 @@ def render_export():
         st.info("No export history available.")
 
 # ============================================================================
-# SECURITY
+# SECURITY PAGE
 # ============================================================================
 
 def render_security():
@@ -2421,10 +2118,6 @@ def render_security():
 # ============================================================================
 
 def main():
-    render_css()
-    render_sidebar()
-    render_hero()
-    
     page = st.session_state.current_page
     
     page_map = {
@@ -2451,14 +2144,14 @@ def main():
         <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 10px;">
             <span>🏆 SIH 2026</span>
             <span>|</span>
-            <span>🕵️ SUTRA-X {get_text('version')}</span>
+            <span>🕵️ SUTRA-X v3.0.0</span>
             <span>|</span>
-            <span>🌐 {LANGUAGES[st.session_state.language]['name']}</span>
+            <span>🌐 English</span>
             <span>|</span>
             <span>👤 {st.session_state.user_role.upper() if st.session_state.authenticated else 'Guest'}</span>
         </div>
         <div style="font-size: 0.8rem; color: #aaa;">
-            {get_text('made_with')}
+            Made with ❤️ for Smart India Hackathon 2026
         </div>
     </div>
     """, unsafe_allow_html=True)
