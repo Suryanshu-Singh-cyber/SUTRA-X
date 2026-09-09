@@ -3,40 +3,29 @@ SUTRA-X ULTIMATE FINAL: Complete Criminal Network Intelligence Platform
 SIH 2026 | AI-Powered | HYBRID HTTP-SDK GROQ ENGINE | PRODUCTION READY
 """
 # ============================================================================
-# IMPORT REAL DATA LOADER
+# IMPORT REAL DATA LOADER - FIXED PATH
 # ============================================================================
 
-from data_loader import RealDataLoader
+import sys
+import os
+from pathlib import Path
+
+# Add utils folder to path
+sys.path.insert(0, str(Path(__file__).parent / "utils"))
+
+try:
+    from data_loader import RealDataLoader
+    DATA_LOADER_AVAILABLE = True
+    print("✅ DataLoader imported successfully")
+except ImportError as e:
+    DATA_LOADER_AVAILABLE = False
+    print(f"⚠️ DataLoader not available: {e}")
 
 # Initialize data loader
-data_loader = RealDataLoader()
+data_loader = None
+if DATA_LOADER_AVAILABLE:
+    data_loader = RealDataLoader()
 
-# ============================================================================
-# ADD REAL DATA PROCESSING TO YOUR APP
-# ============================================================================
-
-def process_real_data():
-    """Load and process all real datasets"""
-    
-    with st.spinner("📂 Loading real datasets..."):
-        # Load all datasets
-        data_loader.load_ilsi_dataset()
-        data_loader.load_ncrb_cyber_data()
-        data_loader.load_scam_hinglish()
-        data_loader.load_multi_scam()
-        
-        # Process into entities and relationships
-        entities, relationships = data_loader.process_all_data()
-        
-        # Build graph
-        processor = DataProcessor()
-        G = processor.build_graph(entities, relationships)
-        
-        st.session_state.graph = G
-        st.session_state.data_loaded = True
-        st.session_state.entity_list = get_node_list(G)
-        
-        return len(entities), len(relationships)
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -295,6 +284,49 @@ def get_fallback_response(query):
     if not responses:
         responses.append("💡 Network analysis is available. Try asking about entities, relationships, risk, or patterns.")
     return "\n".join(responses)
+
+# ============================================================================
+# REAL DATA PROCESSING - FIXED
+# ============================================================================
+
+def process_real_data():
+    """Load and process all real datasets"""
+    
+    if not DATA_LOADER_AVAILABLE or data_loader is None:
+        st.warning("⚠️ DataLoader not available. Using sample data.")
+        return 0, 0
+    
+    try:
+        with st.spinner("📂 Loading real datasets..."):
+            # Load all datasets
+            data_loader.load_ilsi_dataset()
+            data_loader.load_ncrb_cyber_data()
+            data_loader.load_scam_hinglish()
+            data_loader.load_multi_scam()
+            
+            # Process into entities and relationships
+            entities, relationships = data_loader.process_all_data()
+            
+            # Build graph
+            G = generate_sample_network()  # Use sample data as base
+            
+            # Add real entities to graph
+            for entity in entities[:500]:  # Limit for performance
+                G.add_node(entity['id'], type=entity['type'], name=entity.get('name', entity['id']))
+            
+            for rel in relationships[:500]:
+                if rel['source'] in G.nodes and rel['target'] in G.nodes:
+                    G.add_edge(rel['source'], rel['target'], type=rel['type'])
+            
+            st.session_state.graph = G
+            st.session_state.data_loaded = True
+            st.session_state.entity_list = get_node_list(G)
+            st.session_state.alerts = generate_alerts(G)
+            
+            return len(entities), len(relationships)
+    except Exception as e:
+        st.error(f"Error loading real data: {e}")
+        return 0, 0
 
 # ============================================================================
 # GRAPH CLASS - FIXED
@@ -1194,16 +1226,29 @@ with st.sidebar:
     
     # Data Controls
     st.markdown("### 📊 Data")
-    if st.button("🔄 Generate Sample Data", use_container_width=True):
-        with st.spinner("Generating network data..."):
-            G = generate_sample_network()
-            st.session_state.graph = G
-            st.session_state.data_loaded = True
-            st.session_state.entity_list = get_node_list(G)
-            st.session_state.alerts = generate_alerts(G)
-            add_audit_log("data_generate", "Network Data", "Sample data generated")
-            st.success(f"✅ Generated {len(st.session_state.entity_list)} entities!")
-            st.rerun()
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🔄 Sample Data", use_container_width=True):
+            with st.spinner("Generating network data..."):
+                G = generate_sample_network()
+                st.session_state.graph = G
+                st.session_state.data_loaded = True
+                st.session_state.entity_list = get_node_list(G)
+                st.session_state.alerts = generate_alerts(G)
+                add_audit_log("data_generate", "Network Data", "Sample data generated")
+                st.success(f"✅ Generated {len(st.session_state.entity_list)} entities!")
+                st.rerun()
+    
+    with col2:
+        if DATA_LOADER_AVAILABLE:
+            if st.button("📂 Real Data", use_container_width=True):
+                entities, relationships = process_real_data()
+                if entities > 0:
+                    st.success(f"✅ Loaded {entities} entities from real datasets!")
+                    st.rerun()
+                else:
+                    st.warning("⚠️ No real data found. Using sample data.")
     
     st.markdown("---")
     
@@ -1251,11 +1296,11 @@ def render_dashboard():
     """, unsafe_allow_html=True)
     
     if not st.session_state.data_loaded or G is None:
-        st.info("👈 Click **'Generate Sample Data'** in the sidebar to create your first criminal network.")
+        st.info("👈 Click **'Sample Data'** or **'Real Data'** in the sidebar to create your criminal network.")
         st.markdown("""
         <div style="background: linear-gradient(145deg, #1a1a2e, #1f1f3a); padding: 2rem; border-radius: 14px; border: 1px dashed #2a2a4e; text-align: center;">
             <div style="font-size: 3rem; margin-bottom: 0.5rem;">🕵️</div>
-            <p style="color: #94a3b8; font-size: 1.1rem;">Ready to investigate? Generate sample data to get started.</p>
+            <p style="color: #94a3b8; font-size: 1.1rem;">Ready to investigate? Load data to get started.</p>
             <p style="color: #64748b; font-size: 0.85rem;">The data will include persons, phones, accounts, cases, and connections.</p>
         </div>
         """, unsafe_allow_html=True)
@@ -1345,7 +1390,7 @@ def render_network_graph():
     """, unsafe_allow_html=True)
     
     if not st.session_state.data_loaded or G is None:
-        st.info("👈 Generate sample data first to visualize the network.")
+        st.info("👈 Load data first to visualize the network.")
         return
     
     if len(node_list) == 0:
@@ -1355,6 +1400,18 @@ def render_network_graph():
     if PLOTLY_AVAILABLE and NETWORKX_AVAILABLE:
         try:
             st.info("💡 Hover over nodes for details. Drag to explore the network.")
+            
+            # Ensure G is NetworkX graph
+            if not hasattr(G, 'number_of_nodes'):
+                nx_G = nx.Graph()
+                for node in node_list:
+                    nx_G.add_node(node)
+                for node in node_list:
+                    neighbors = get_neighbors(G, node)
+                    for neighbor in neighbors:
+                        if node < neighbor:
+                            nx_G.add_edge(node, neighbor)
+                G = nx_G
             
             pos = nx.spring_layout(G, k=0.5, iterations=50)
             
@@ -1485,7 +1542,7 @@ def render_entity_profile():
     """, unsafe_allow_html=True)
     
     if not st.session_state.data_loaded or G is None:
-        st.info("👈 Generate sample data first to explore entities.")
+        st.info("👈 Load data first to explore entities.")
         return
     
     if not node_list:
@@ -1582,7 +1639,7 @@ def render_timeline():
     """, unsafe_allow_html=True)
     
     if not st.session_state.data_loaded:
-        st.info("👈 Generate sample data first.")
+        st.info("👈 Load data first.")
         return
     
     st.info("📈 Timeline view showing network evolution")
@@ -1648,7 +1705,7 @@ def render_cross_case():
     """, unsafe_allow_html=True)
     
     if not st.session_state.data_loaded or G is None:
-        st.info("👈 Generate sample data first.")
+        st.info("👈 Load data first.")
         return
     
     st.info("🔍 Discovering connections between cases...")
@@ -1711,7 +1768,7 @@ def render_ai_copilot():
     """, unsafe_allow_html=True)
     
     if not st.session_state.data_loaded or G is None:
-        st.info("👈 Generate sample data first.")
+        st.info("👈 Load data first.")
         return
     
     if not has_permission("use_ai"):
@@ -1852,7 +1909,7 @@ def render_alerts():
     """, unsafe_allow_html=True)
     
     if not st.session_state.data_loaded:
-        st.info("👈 Generate sample data first.")
+        st.info("👈 Load data first.")
         return
     
     col1, col2, col3 = st.columns(3)
@@ -1957,7 +2014,7 @@ def render_simulation():
     """, unsafe_allow_html=True)
     
     if not st.session_state.data_loaded or G is None:
-        st.info("👈 Generate sample data first.")
+        st.info("👈 Load data first.")
         return
     
     if not st.session_state.authenticated:
@@ -2031,7 +2088,7 @@ def render_heatmap():
     """, unsafe_allow_html=True)
     
     if not st.session_state.data_loaded or G is None:
-        st.info("👈 Generate sample data first.")
+        st.info("👈 Load data first.")
         return
     
     heatmap_data = []
@@ -2078,7 +2135,7 @@ def render_export():
     """, unsafe_allow_html=True)
     
     if not st.session_state.data_loaded:
-        st.info("👈 Generate sample data first.")
+        st.info("👈 Load data first.")
         return
     
     if not st.session_state.authenticated:
