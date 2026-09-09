@@ -444,7 +444,146 @@ def get_neighbors(G, node):
             return G.neighbors(node)
     except:
         return []
+# ============================================================================
+# LOAD RELATIONSHIPS FROM CSV - NEW FEATURE
+# ============================================================================
 
+def load_relationships_from_csv():
+    """
+    Load relationships from relationships.csv file
+    Creates graph with entities from the relationships
+    """
+    try:
+        # Try to find the file in current directory or uploads
+        rel_file = Path("relationships.csv")
+        
+        # Also check if there's a file in the uploads folder
+        if not rel_file.exists():
+            # Check common locations
+            possible_locations = [
+                Path("datasets/ilsil/data/relationships.csv"),
+                Path("../relationships.csv"),
+                Path("uploads/relationships.csv"),
+            ]
+            for loc in possible_locations:
+                if loc.exists():
+                    rel_file = loc
+                    break
+        
+        if not rel_file.exists():
+            st.warning("⚠️ relationships.csv not found! Please upload the file.")
+            return False
+        
+        with st.spinner("📊 Loading relationships from CSV..."):
+            # Read the CSV
+            df = pd.read_csv(rel_file)
+            st.info(f"📊 Found {len(df):,} rows in relationships.csv")
+            st.info(f"📋 Columns: {', '.join(df.columns)}")
+            
+            # Determine source and target columns
+            source_col = None
+            target_col = None
+            rel_type_col = None
+            
+            # Check for common column names
+            for col in df.columns:
+                col_lower = col.lower()
+                if col_lower in ['source', 'from', 'src', 'caller', 'sender']:
+                    source_col = col
+                elif col_lower in ['target', 'to', 'dst', 'receiver', 'recipient']:
+                    target_col = col
+                elif col_lower in ['type', 'relation', 'relationship', 'edge_type']:
+                    rel_type_col = col
+            
+            # If not found, try to guess from first 2 columns
+            if source_col is None and len(df.columns) >= 2:
+                source_col = df.columns[0]
+                target_col = df.columns[1]
+                st.info(f"⚠️ Using '{source_col}' as source and '{target_col}' as target")
+            
+            if source_col is None or target_col is None:
+                st.error("❌ Could not find source/target columns. Please ensure your CSV has 'source' and 'target' columns.")
+                st.info(f"📋 Available columns: {df.columns.tolist()}")
+                return False
+            
+            # Create graph
+            if NETWORKX_AVAILABLE:
+                G = nx.Graph()
+            else:
+                G = SimpleGraph()
+            
+            # Process each row
+            node_count = 0
+            edge_count = 0
+            
+            for idx, row in df.iterrows():
+                try:
+                    source = str(row[source_col])
+                    target = str(row[target_col])
+                    
+                    if source and target and source != 'nan' and target != 'nan' and source != target:
+                        # Add nodes
+                        if source not in G.nodes:
+                            # Try to get type from other columns
+                            node_type = 'ENTITY'
+                            if 'type' in df.columns:
+                                node_type = str(row.get('type', 'ENTITY')).upper()
+                            elif 'source_type' in df.columns:
+                                node_type = str(row.get('source_type', 'ENTITY')).upper()
+                            G.add_node(source, type=node_type, name=source)
+                            node_count += 1
+                        
+                        if target not in G.nodes:
+                            node_type = 'ENTITY'
+                            if 'type' in df.columns:
+                                node_type = str(row.get('type', 'ENTITY')).upper()
+                            elif 'target_type' in df.columns:
+                                node_type = str(row.get('target_type', 'ENTITY')).upper()
+                            G.add_node(target, type=node_type, name=target)
+                            node_count += 1
+                        
+                        # Add edge
+                        edge_type = str(row[rel_type_col]) if rel_type_col else 'RELATED'
+                        attrs = {}
+                        for col in df.columns:
+                            if col not in [source_col, target_col, rel_type_col]:
+                                val = row[col]
+                                if pd.notna(val) and val != 'nan':
+                                    attrs[col] = str(val)
+                        attrs['type'] = edge_type
+                        
+                        G.add_edge(source, target, **attrs)
+                        edge_count += 1
+                        
+                except Exception as e:
+                    continue
+            
+            # Generate alerts
+            alerts = generate_alerts(G)
+            
+            # Update session
+            st.session_state.graph = G
+            st.session_state.data_loaded = True
+            st.session_state.entity_list = get_node_list(G)
+            st.session_state.alerts = alerts
+            
+            st.success(f"✅ Loaded {len(G.nodes):,} entities with {edge_count:,} relationships!")
+            st.success(f"🔔 Generated {len(alerts)} alerts")
+            
+            # Show breakdown
+            if len(alerts) > 0:
+                critical = len([a for a in alerts if a.get('type') == 'CRITICAL'])
+                warning = len([a for a in alerts if a.get('type') == 'WARNING'])
+                info = len([a for a in alerts if a.get('type') == 'INFO'])
+                st.info(f"   🔴 Critical: {critical}, 🟡 Warnings: {warning}, 🔵 Info: {info}")
+            
+            return True
+            
+    except Exception as e:
+        st.error(f"❌ Error loading relationships: {e}")
+        import traceback
+        st.code(traceback.format_exc())
+        return False
 def get_degree(G, node):
     try:
         if NETWORKX_AVAILABLE:
@@ -1227,7 +1366,46 @@ st.markdown("""
 # ============================================================================
 # SIDEBAR
 # ============================================================================
+# Data Controls (Upload, Sample, Real)
+st.markdown(f"### 📊 {t('upload')}")
+uploaded_files = st.file_uploader(
+    "Drag & drop files",
+    type=['csv','json','xlsx','xls','png','jpg','jpeg','tiff'],
+    accept_multiple_files=True,
+    key="file_uploader"
+)
+if uploaded_files:
+    if st.button(t('process'), use_container_width=True):
+        with st.spinner(t('processing')):
+            process_uploaded_files(uploaded_files)
 
+    st.markdown("---")
+    st.markdown("### 🔗 Load Relationships")
+    
+    # File uploader for relationships CSV
+    rel_uploaded = st.file_uploader(
+        "Upload relationships.csv",
+        type=['csv'],
+        key="rel_uploader"
+    )
+    
+    if rel_uploaded is not None:
+        # Save the uploaded file
+        with open("relationships.csv", "wb") as f:
+            f.write(rel_uploaded.getbuffer())
+        st.success(f"✅ Uploaded: {rel_uploaded.name}")
+        
+        if st.button("🔄 Process Relationships", use_container_width=True):
+            with st.spinner("Processing relationships..."):
+                if load_relationships_from_csv():
+                    add_audit_log("load_relationships", "CSV", "Loaded relationships.csv")
+                    st.rerun()
+    
+    # Also add a button to load from existing file
+    if st.button("📂 Load Relationships (from file)", use_container_width=True):
+        with st.spinner("Loading..."):
+            if load_relationships_from_csv():
+                st.rerun()
 # Language selection
 lang = st.sidebar.selectbox(
     get_text("language", st.session_state.language),
