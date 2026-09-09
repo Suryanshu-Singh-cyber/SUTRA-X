@@ -1,5 +1,5 @@
 """
-SUTRA-X Data Loader – Enhanced for ILSI, JSONL, and cross‑case links
+SUTRA-X Data Loader – Hybrid Strategy: Real ILSI + Shared IPC edges + Other datasets
 """
 import pandas as pd
 import json
@@ -8,6 +8,7 @@ import re
 from pathlib import Path
 import io
 from datetime import datetime
+import random
 
 # OCR support (optional)
 try:
@@ -172,6 +173,9 @@ class RealDataLoader:
                     scam_id = f"SCAM_{scam.replace(' ', '_')}"
                     all_entities.append({'id': scam_id, 'type': 'SCAM_TYPE', 'name': scam, 'source': 'ScamHinglish'})
 
+        # Optionally, add cross-case edges for ILSI based on shared IPC sections
+        all_entities, all_relationships = self._add_shared_ipc_edges(all_entities, all_relationships)
+
         print(f"✅ Processed {len(all_entities)} entities and {len(all_relationships)} relationships")
         self.entities = all_entities
         self.relationships = all_relationships
@@ -219,7 +223,6 @@ class RealDataLoader:
             if isinstance(data, list):
                 df = pd.DataFrame(data)
             elif isinstance(data, dict):
-                # If dict of dicts, convert to list of dicts
                 df = pd.DataFrame(list(data.values()))
             else:
                 raise ValueError("JSON must be a list or object of objects")
@@ -243,7 +246,13 @@ class RealDataLoader:
         if df is not None:
             dataset_type = self.detect_file_type(file_content, filename)
             if dataset_type == 'ilsi':
-                return self._process_ilsi_df(df)
+                entities, relationships = self._process_ilsi_df(df)
+                # Add shared-IPC edges and optionally synthetic edges
+                entities, relationships = self._add_shared_ipc_edges(entities, relationships)
+                # If still too few edges, generate synthetic ones (optional)
+                if len(relationships) < 50:
+                    entities, relationships = self._generate_synthetic_edges(entities, relationships, min_edges=100)
+                return entities, relationships
             elif dataset_type == 'ncrb':
                 return self._process_ncrb_df(df)
             elif dataset_type in ['scam_hinglish', 'multi_scam']:
@@ -257,11 +266,11 @@ class RealDataLoader:
         else:
             return [], []
 
-    # ---------- Enhanced ILSI processor with cross-case connections ----------
+    # ---------- Enhanced ILSI processor with shared-IPC edges ----------
     def _process_ilsi_df(self, df):
         entities = []
         relationships = []
-        case_persons = {}   # map case_id -> list of person entity IDs
+        case_ipc_map = {}   # case_id -> set of IPC section IDs
 
         for idx, row in df.iterrows():
             case_id = row.get('case_id', row.get('id', f"CASE_{idx}"))
@@ -285,9 +294,11 @@ class RealDataLoader:
             else:
                 ipc_list = []
 
+            ipc_ids_for_case = set()
             for sec in ipc_list[:5]:
                 if sec:
                     ipc_id = f"IPC-{sec}"
+                    ipc_ids_for_case.add(ipc_id)
                     entities.append({
                         'id': ipc_id,
                         'type': 'IPC_SECTION',
@@ -301,9 +312,10 @@ class RealDataLoader:
                         'source_type': 'upload'
                     })
 
+            case_ipc_map[case_id] = ipc_ids_for_case
+
             # 3. Extract persons and locations from facts
             extracted = self.extract_entities_from_text(facts)
-            person_ids = []
             for ent in extracted:
                 if ent['type'] in ['PERSON', 'LOCATION']:
                     entity_id = f"{ent['type']}_{ent['value'].replace(' ', '_')}"
@@ -319,28 +331,64 @@ class RealDataLoader:
                         'type': 'MENTIONS',
                         'source_type': 'upload'
                     })
-                    if ent['type'] == 'PERSON':
-                        person_ids.append(entity_id)
 
-            case_persons[case_id] = person_ids
-
-        # 4. Build cross-case connections (cases sharing a person)
-        case_list = list(case_persons.keys())
-        for i, case1 in enumerate(case_list):
-            for case2 in case_list[i+1:]:
-                shared = set(case_persons[case1]) & set(case_persons[case2])
-                if shared:
-                    relationships.append({
-                        'source': case1,
-                        'target': case2,
-                        'type': 'SHARED_PERSON',
-                        'shared_entities': list(shared),
-                        'source_type': 'upload'
-                    })
-
+        # Store the map for later use
+        self._case_ipc_map = case_ipc_map
         return entities, relationships
 
-    # ---------- Other processors (NCRB, Scam, CDR, etc.) remain the same ----------
+    # ---------- Add shared-IPC edges ----------
+    def _add_shared_ipc_edges(self, entities, relationships):
+        """Create case-case edges when cases share at least one IPC section."""
+        # Build a map of IPC -> list of cases
+        ipc_to_cases = {}
+        for rel in relationships:
+            if rel['type'] == 'CITES':
+                ipc = rel['target']
+                case = rel['source']
+                ipc_to_cases.setdefault(ipc, []).append(case)
+
+        # For each IPC, connect all cases that share it
+        for ipc, cases in ipc_to_cases.items():
+            if len(cases) >= 2:
+                for i, case1 in enumerate(cases):
+                    for case2 in cases[i+1:]:
+                        relationships.append({
+                            'source': case1,
+                            'target': case2,
+                            'type': 'SHARED_IPC',
+                            'ipc': ipc,
+                            'source_type': 'derived'
+                        })
+        return entities, relationships
+
+    # ---------- Optional synthetic edge generator (fallback) ----------
+    def _generate_synthetic_edges(self, entities, relationships, min_edges=100):
+        """If too few edges, add random connections between cases (for demo)."""
+        if len(relationships) >= min_edges:
+            return entities, relationships
+
+        case_ids = [e['id'] for e in entities if e['type'] == 'CASE']
+        if len(case_ids) < 2:
+            return entities, relationships
+
+        # Add edges between random pairs of cases until we reach min_edges
+        needed = min_edges - len(relationships)
+        random.shuffle(case_ids)
+        added = 0
+        for i in range(0, len(case_ids)-1, 2):
+            if added >= needed:
+                break
+            u, v = case_ids[i], case_ids[i+1]
+            relationships.append({
+                'source': u,
+                'target': v,
+                'type': 'SYNTHETIC_DEMO',
+                'source_type': 'synthetic'
+            })
+            added += 1
+        return entities, relationships
+
+    # ---------- Other processors (NCRB, Scam, CDR, etc.) ----------
     def _process_ncrb_df(self, df):
         entities, relationships = [], []
         for _, row in df.head(1000).iterrows():
@@ -409,7 +457,7 @@ class RealDataLoader:
             entities.append({'id': entity_id, 'type': 'GENERIC', 'name': f"Row {idx+1}", 'properties': row_dict, 'source': 'upload'})
         return entities, relationships
 
-    # ---------- Entity extraction from free text (unchanged) ----------
+    # ---------- Entity extraction from free text ----------
     def extract_entities_from_text(self, text):
         entities = []
         if not text or not isinstance(text, str):
@@ -433,7 +481,7 @@ class RealDataLoader:
                 entities.append({'type': 'LOCATION', 'value': city, 'source': 'extracted'})
         return entities
 
-    # ---------- Summary (unchanged) ----------
+    # ---------- Summary ----------
     def get_summary(self):
         summary = {}
         for name, data in self.datasets.items():
