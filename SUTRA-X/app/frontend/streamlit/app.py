@@ -2,7 +2,41 @@
 SUTRA-X ULTIMATE FINAL: Complete Criminal Network Intelligence Platform
 SIH 2026 | AI-Powered | HYBRID HTTP-SDK GROQ ENGINE | PRODUCTION READY
 """
+# ============================================================================
+# IMPORT REAL DATA LOADER
+# ============================================================================
 
+from data_loader import RealDataLoader
+
+# Initialize data loader
+data_loader = RealDataLoader()
+
+# ============================================================================
+# ADD REAL DATA PROCESSING TO YOUR APP
+# ============================================================================
+
+def process_real_data():
+    """Load and process all real datasets"""
+    
+    with st.spinner("📂 Loading real datasets..."):
+        # Load all datasets
+        data_loader.load_ilsi_dataset()
+        data_loader.load_ncrb_cyber_data()
+        data_loader.load_scam_hinglish()
+        data_loader.load_multi_scam()
+        
+        # Process into entities and relationships
+        entities, relationships = data_loader.process_all_data()
+        
+        # Build graph
+        processor = DataProcessor()
+        G = processor.build_graph(entities, relationships)
+        
+        st.session_state.graph = G
+        st.session_state.data_loaded = True
+        st.session_state.entity_list = get_node_list(G)
+        
+        return len(entities), len(relationships)
 import streamlit as st
 import pandas as pd
 import numpy as np
