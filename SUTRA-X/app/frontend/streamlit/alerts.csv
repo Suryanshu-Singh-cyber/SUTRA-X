@@ -1,0 +1,31 @@
+id,type,title,description,entity,degree,timestamp,action,emergency
+ALERT-CRITICAL-1,CRITICAL,Critical Hub: 42293225,Entity has 47 connections,42293225,47,2026-09-10T03:19:40.217641,Immediate investigation required,True
+ALERT-CRITICAL-2,CRITICAL,Critical Hub: 42275214,Entity has 44 connections,42275214,44,2026-09-10T03:19:40.217661,Immediate investigation required,True
+ALERT-CRITICAL-3,CRITICAL,Critical Hub: 417087,Entity has 43 connections,417087,43,2026-09-10T03:19:40.217667,Immediate investigation required,True
+ALERT-CRITICAL-4,CRITICAL,Critical Hub: 42428263,Entity has 43 connections,42428263,43,2026-09-10T03:19:40.217671,Immediate investigation required,True
+ALERT-CRITICAL-5,CRITICAL,Critical Hub: 42419933,Entity has 42 connections,42419933,42,2026-09-10T03:19:40.217678,Immediate investigation required,True
+ALERT-WARNING-1,WARNING,High Priority: 42005270,Entity has 42 connections,42005270,42,2026-09-10T03:19:40.217687,Review connections for patterns,False
+ALERT-WARNING-2,WARNING,High Priority: 41913794,Entity has 40 connections,41913794,40,2026-09-10T03:19:40.217692,Review connections for patterns,False
+ALERT-WARNING-3,WARNING,High Priority: 4249765,Entity has 40 connections,4249765,40,2026-09-10T03:19:40.217696,Review connections for patterns,False
+ALERT-WARNING-4,WARNING,High Priority: 421206,Entity has 40 connections,421206,40,2026-09-10T03:19:40.217699,Review connections for patterns,False
+ALERT-WARNING-5,WARNING,High Priority: 42164534,Entity has 38 connections,42164534,38,2026-09-10T03:19:40.217703,Review connections for patterns,False
+ALERT-WARNING-6,WARNING,High Priority: 42629029,Entity has 38 connections,42629029,38,2026-09-10T03:19:40.217706,Review connections for patterns,False
+ALERT-WARNING-7,WARNING,High Priority: 42980506,Entity has 38 connections,42980506,38,2026-09-10T03:19:40.217710,Review connections for patterns,False
+ALERT-WARNING-8,WARNING,High Priority: 4249942,Entity has 38 connections,4249942,38,2026-09-10T03:19:40.217713,Review connections for patterns,False
+ALERT-WARNING-9,WARNING,High Priority: 42379647,Entity has 38 connections,42379647,38,2026-09-10T03:19:40.217716,Review connections for patterns,False
+ALERT-WARNING-10,WARNING,High Priority: 42162738,Entity has 37 connections,42162738,37,2026-09-10T03:19:40.217720,Review connections for patterns,False
+ALERT-INFO-1,INFO,Connected Entity: 423940,Entity has 37 connections,423940,37,2026-09-10T03:19:40.217725,Monitor activity for changes,False
+ALERT-INFO-2,INFO,Connected Entity: 418222,Entity has 37 connections,418222,37,2026-09-10T03:19:40.217730,Monitor activity for changes,False
+ALERT-INFO-3,INFO,Connected Entity: 41937497,Entity has 37 connections,41937497,37,2026-09-10T03:19:40.217734,Monitor activity for changes,False
+ALERT-INFO-4,INFO,Connected Entity: 41787264,Entity has 36 connections,41787264,36,2026-09-10T03:19:40.217737,Monitor activity for changes,False
+ALERT-INFO-5,INFO,Connected Entity: 41791519,Entity has 36 connections,41791519,36,2026-09-10T03:19:40.217740,Monitor activity for changes,False
+ALERT-INFO-6,INFO,Connected Entity: 42779199,Entity has 36 connections,42779199,36,2026-09-10T03:19:40.217744,Monitor activity for changes,False
+ALERT-INFO-7,INFO,Connected Entity: 41720592,Entity has 36 connections,41720592,36,2026-09-10T03:19:40.217747,Monitor activity for changes,False
+ALERT-INFO-8,INFO,Connected Entity: 42062675,Entity has 36 connections,42062675,36,2026-09-10T03:19:40.217750,Monitor activity for changes,False
+ALERT-INFO-9,INFO,Connected Entity: 41985844,Entity has 36 connections,41985844,36,2026-09-10T03:19:40.217754,Monitor activity for changes,False
+ALERT-INFO-10,INFO,Connected Entity: 42525316,Entity has 36 connections,42525316,36,2026-09-10T03:19:40.217759,Monitor activity for changes,False
+ALERT-INFO-11,INFO,Connected Entity: 41687937,Entity has 36 connections,41687937,36,2026-09-10T03:19:40.217765,Monitor activity for changes,False
+ALERT-INFO-12,INFO,Connected Entity: 41959844,Entity has 36 connections,41959844,36,2026-09-10T03:19:40.217769,Monitor activity for changes,False
+ALERT-INFO-13,INFO,Connected Entity: 41811383,Entity has 35 connections,41811383,35,2026-09-10T03:19:40.217772,Monitor activity for changes,False
+ALERT-INFO-14,INFO,Connected Entity: 42064801,Entity has 35 connections,42064801,35,2026-09-10T03:19:40.217776,Monitor activity for changes,False
+ALERT-INFO-15,INFO,Connected Entity: 42539895,Entity has 35 connections,42539895,35,2026-09-10T03:19:40.217779,Monitor activity for changes,False
