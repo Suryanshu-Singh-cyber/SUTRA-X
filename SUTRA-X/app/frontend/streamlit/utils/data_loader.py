@@ -1,5 +1,5 @@
 """
-SUTRA-X Data Loader – Supports local datasets + dynamic file uploads
+SUTRA-X Data Loader – Enhanced for ILSI, JSONL, and cross‑case links
 """
 import pandas as pd
 import json
@@ -26,10 +26,9 @@ class RealDataLoader:
 
     # ---------- Local dataset loading (for real data) ----------
     def load_ilsi_dataset(self):
-        """Load ILSI: 66,090 Indian court cases"""
+        """Load ILSI: 66,090 Indian court cases (from local folder)"""
         print("📂 Loading ILSI Dataset...")
         try:
-            # Try multiple possible paths
             paths = [
                 self.project_root / "datasets" / "ilsil" / "data" / "cases.json",
                 self.project_root / "datasets" / "ilsil" / "cases.json",
@@ -150,7 +149,7 @@ class RealDataLoader:
                     all_entities.append({'id': entity_id, 'type': ent['type'], 'name': ent['value'], 'source': 'ILSI'})
                     all_relationships.append({'source': case_id, 'target': entity_id, 'type': 'MENTIONS', 'source_type': 'ILSI'})
 
-        # NCRB
+        # NCRB (similar)
         if 'ncrb' in self.datasets:
             df = self.datasets['ncrb']
             for _, row in df.head(1000).iterrows():
@@ -178,7 +177,7 @@ class RealDataLoader:
         self.relationships = all_relationships
         return all_entities, all_relationships
 
-    # ---------- Dynamic file upload processing ----------
+    # ---------- ENHANCED DYNAMIC UPLOAD PROCESSING (supports .jsonl) ----------
     def detect_file_type(self, file_content, filename):
         filename_lower = filename.lower()
         if 'ilsi' in filename_lower or 'case' in filename_lower:
@@ -194,60 +193,154 @@ class RealDataLoader:
         return 'generic'
 
     def process_uploaded_file(self, file_content, filename, file_extension):
+        """Main entry – reads file, detects type, extracts entities, builds relationships"""
         df = None
         raw_text = None
-        if file_extension in ['.csv']:
+
+        # ---- JSONL handling ----
+        if file_extension == '.jsonl':
+            try:
+                lines = file_content.decode('utf-8').splitlines()
+                data = [json.loads(line) for line in lines if line.strip()]
+                if data:
+                    df = pd.DataFrame(data)
+                else:
+                    return [], []
+            except Exception as e:
+                raise ValueError(f"Failed to parse JSONL: {e}")
+
+        # ---- CSV ----
+        elif file_extension == '.csv':
             df = pd.read_csv(io.BytesIO(file_content))
-        elif file_extension in ['.json']:
-            df = pd.read_json(io.BytesIO(file_content))
+
+        # ---- JSON (single object) ----
+        elif file_extension == '.json':
+            data = json.loads(file_content.decode('utf-8'))
+            if isinstance(data, list):
+                df = pd.DataFrame(data)
+            elif isinstance(data, dict):
+                # If dict of dicts, convert to list of dicts
+                df = pd.DataFrame(list(data.values()))
+            else:
+                raise ValueError("JSON must be a list or object of objects")
+
+        # ---- Excel ----
         elif file_extension in ['.xlsx', '.xls']:
             df = pd.read_excel(io.BytesIO(file_content))
+
+        # ---- Image (OCR) ----
         elif file_extension in ['.png', '.jpg', '.jpeg', '.tiff']:
             if OCR_AVAILABLE:
                 image = Image.open(io.BytesIO(file_content))
                 raw_text = pytesseract.image_to_string(image)
             else:
                 raise ValueError("OCR not installed. Install pytesseract and PIL.")
+
         else:
             raise ValueError(f"Unsupported file type: {file_extension}")
 
-        dataset_type = self.detect_file_type(file_content, filename)
-        if dataset_type == 'ilsi' and df is not None:
-            return self._process_ilsi_df(df)
-        elif dataset_type == 'ncrb' and df is not None:
-            return self._process_ncrb_df(df)
-        elif dataset_type in ['scam_hinglish', 'multi_scam'] and df is not None:
-            return self._process_scam_df(df, dataset_type)
-        elif dataset_type in ['cdr', 'transaction'] and df is not None:
-            return self._process_cdr_transaction_df(df, dataset_type)
+        # Process the DataFrame or raw text
+        if df is not None:
+            dataset_type = self.detect_file_type(file_content, filename)
+            if dataset_type == 'ilsi':
+                return self._process_ilsi_df(df)
+            elif dataset_type == 'ncrb':
+                return self._process_ncrb_df(df)
+            elif dataset_type in ['scam_hinglish', 'multi_scam']:
+                return self._process_scam_df(df, dataset_type)
+            elif dataset_type in ['cdr', 'transaction']:
+                return self._process_cdr_transaction_df(df, dataset_type)
+            else:
+                return self._process_generic_df(df)
         elif raw_text:
             return self._process_text(raw_text, filename)
         else:
-            return self._process_generic_df(df) if df is not None else ([], [])
+            return [], []
 
+    # ---------- Enhanced ILSI processor with cross-case connections ----------
     def _process_ilsi_df(self, df):
-        entities, relationships = [], []
-        for _, row in df.iterrows():
-            case_id = row.get('case_id', row.get('id', f"CASE_{len(entities)}"))
-            facts = row.get('fact', row.get('text', ''))
-            ipc = row.get('ipc_sections', row.get('labels', ''))
-            entities.append({'id': case_id, 'type': 'CASE', 'name': case_id, 'facts': str(facts)[:200], 'source': 'upload'})
-            if isinstance(ipc, str):
-                ipc_list = re.findall(r'\d+', ipc)
+        entities = []
+        relationships = []
+        case_persons = {}   # map case_id -> list of person entity IDs
+
+        for idx, row in df.iterrows():
+            case_id = row.get('case_id', row.get('id', f"CASE_{idx}"))
+            facts = str(row.get('fact', row.get('text', '')))
+            labels = row.get('labels', row.get('ipc_sections', ''))
+
+            # 1. Add case entity
+            entities.append({
+                'id': case_id,
+                'type': 'CASE',
+                'name': case_id,
+                'facts': facts[:200],
+                'source': 'upload'
+            })
+
+            # 2. Extract IPC sections
+            if isinstance(labels, str):
+                ipc_list = re.findall(r'\d+', labels)
+            elif isinstance(labels, list):
+                ipc_list = [str(x) for x in labels if str(x).isdigit()]
             else:
-                ipc_list = str(ipc).split(',')
+                ipc_list = []
+
             for sec in ipc_list[:5]:
                 if sec:
                     ipc_id = f"IPC-{sec}"
-                    entities.append({'id': ipc_id, 'type': 'IPC_SECTION', 'name': f"Section {sec}", 'source': 'upload'})
-                    relationships.append({'source': case_id, 'target': ipc_id, 'type': 'CITES', 'source_type': 'upload'})
-            extracted = self.extract_entities_from_text(str(facts))
+                    entities.append({
+                        'id': ipc_id,
+                        'type': 'IPC_SECTION',
+                        'name': f"Section {sec}",
+                        'source': 'upload'
+                    })
+                    relationships.append({
+                        'source': case_id,
+                        'target': ipc_id,
+                        'type': 'CITES',
+                        'source_type': 'upload'
+                    })
+
+            # 3. Extract persons and locations from facts
+            extracted = self.extract_entities_from_text(facts)
+            person_ids = []
             for ent in extracted:
-                entity_id = f"{ent['type']}_{ent['value'].replace(' ', '_')}"
-                entities.append({'id': entity_id, 'type': ent['type'], 'name': ent['value'], 'source': 'upload'})
-                relationships.append({'source': case_id, 'target': entity_id, 'type': 'MENTIONS', 'source_type': 'upload'})
+                if ent['type'] in ['PERSON', 'LOCATION']:
+                    entity_id = f"{ent['type']}_{ent['value'].replace(' ', '_')}"
+                    entities.append({
+                        'id': entity_id,
+                        'type': ent['type'],
+                        'name': ent['value'],
+                        'source': 'upload'
+                    })
+                    relationships.append({
+                        'source': case_id,
+                        'target': entity_id,
+                        'type': 'MENTIONS',
+                        'source_type': 'upload'
+                    })
+                    if ent['type'] == 'PERSON':
+                        person_ids.append(entity_id)
+
+            case_persons[case_id] = person_ids
+
+        # 4. Build cross-case connections (cases sharing a person)
+        case_list = list(case_persons.keys())
+        for i, case1 in enumerate(case_list):
+            for case2 in case_list[i+1:]:
+                shared = set(case_persons[case1]) & set(case_persons[case2])
+                if shared:
+                    relationships.append({
+                        'source': case1,
+                        'target': case2,
+                        'type': 'SHARED_PERSON',
+                        'shared_entities': list(shared),
+                        'source_type': 'upload'
+                    })
+
         return entities, relationships
 
+    # ---------- Other processors (NCRB, Scam, CDR, etc.) remain the same ----------
     def _process_ncrb_df(self, df):
         entities, relationships = [], []
         for _, row in df.head(1000).iterrows():
@@ -316,6 +409,7 @@ class RealDataLoader:
             entities.append({'id': entity_id, 'type': 'GENERIC', 'name': f"Row {idx+1}", 'properties': row_dict, 'source': 'upload'})
         return entities, relationships
 
+    # ---------- Entity extraction from free text (unchanged) ----------
     def extract_entities_from_text(self, text):
         entities = []
         if not text or not isinstance(text, str):
@@ -326,19 +420,20 @@ class RealDataLoader:
             matches = re.findall(pattern, text, re.IGNORECASE)
             for match in matches:
                 entities.append({'type': 'IPC_SECTION', 'value': f"IPC-{match}", 'source': 'extracted'})
-        # Names
+        # Names (capitalized words)
         name_pattern = r'\b([A-Z][a-z]+)\s+([A-Z][a-z]+)\b'
         matches = re.findall(name_pattern, text)
         for first, last in matches[:10]:
             if len(first)>1 and len(last)>1 and first not in ['The','And','For','With','From']:
                 entities.append({'type': 'PERSON', 'value': f"{first} {last}", 'source': 'extracted'})
-        # Cities
+        # Indian cities
         cities = ['Mumbai','Delhi','Bangalore','Chennai','Hyderabad','Kolkata','Pune','Ahmedabad','Jaipur','Lucknow']
         for city in cities:
             if city in text:
                 entities.append({'type': 'LOCATION', 'value': city, 'source': 'extracted'})
         return entities
 
+    # ---------- Summary (unchanged) ----------
     def get_summary(self):
         summary = {}
         for name, data in self.datasets.items():
